@@ -7,6 +7,7 @@
 <script src="https://unpkg.com/lucide@1.28.0"></script>
 <script src="https://www.gstatic.com/firebasejs/12.17.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.17.1/firebase-auth-compat.js"></script>
 <style>
   :root{
     --paper:#F5F0E7; --surface:#FFFDF9; --ink:#332F28; --sub:#6E685C;
@@ -187,6 +188,8 @@
   .lesson .l-txt strong{font-weight:700}
   .lesson .l-meta{font-size:12.5px;color:var(--sub);white-space:nowrap}
   .player{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:16px;box-shadow:var(--shadowSm)}
+  .ytwrap{position:relative;padding-top:56.25%;border-radius:13px;overflow:hidden;background:#000}
+  .ytwrap iframe,.ytwrap #ytplayer{position:absolute;top:0;left:0;width:100%;height:100%;border:0}
   .player .screen{aspect-ratio:16/9;background:#2A2824;border-radius:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:#EDE7DA;text-align:center;padding:20px}
   .player .screen small{font-size:13px;opacity:.85;line-height:1.5}
   .player .screen .icon{color:#EDE7DA}
@@ -273,6 +276,9 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+const auth = firebase.auth();
+let secondaryApp = null;
+function adminAuth(){ if(!secondaryApp) secondaryApp = firebase.initializeApp(firebaseConfig, "secondary"); return secondaryApp.auth(); }
 
 /* ═══════════════ DATOS (editá solo esto) ═══════════════ */
 const PRICE_STD = 19600;
@@ -331,49 +337,36 @@ const SITUACIONES = ["Estudiante","Trabajo en relación de dependencia","Indepen
 const ars = n => "$" + n.toLocaleString("es-AR");
 const esc = s => (""+s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 
-/* ═══════════════ AULA / LMS — datos de demo, editables ═══════════════ */
-/* Recomendación: dejar el bloqueo de adelanto en FALSE. El avance se mide por
-   tiempo realmente mirado (no crippleando la barra). Si insistís, ponelo true. */
-const BLOQUEAR_ADELANTO = false;
+/* ═══════════════ AULA / LMS ═══════════════ */
 const UMBRAL_COMPLETADO = 0.9;   // 90% mirado = clase completa
-const DEMO_STEP = 8;             // solo demo: segundos de video por tick (acelerado)
 
-/* Lecciones por curso. En producción, "vimeo" es el ID del video privado. */
+/* Lecciones por curso: cada clase con su ID de YouTube (yt) y el link del PDF (pdf). */
 const LESSONS = {
-  "excel-1":[
-    { id:"l1", titulo:"La planilla por dentro", min:3, vimeo:"" },
-    { id:"l2", titulo:"Fórmulas básicas",       min:3, vimeo:"" },
-    { id:"l3", titulo:"Formato y presentación", min:2, vimeo:"" },
-    { id:"l4", titulo:"Tu primer gráfico",      min:2, vimeo:"" },
+  "primer-contacto-ia":[
+    { id:"l1", titulo:"Introducción a la IA", yt:"a6ErjVtWlis", pdf:"https://drive.google.com/file/d/1UeddrkWHMKFE7stCn9VUKPEkayc29wfZ/view" },
+    { id:"l2", titulo:"Mi primer contacto con la IA", yt:"bkeg5ThIHX4", pdf:"https://drive.google.com/file/d/1uvRHikRWb9tXBYmEnGshSVmrpBkN1Qcx/view" },
+    { id:"l3", titulo:"Mejorar tu conversación con la IA", yt:"LB0Rf-evVwA", pdf:"https://drive.google.com/file/d/13onM0BtPhJACaoPxnMpFSeKQ0iK0iU32/view" },
   ],
-  /* Los demás cursos siguen el mismo formato. Cargalos acá. */
+  /* Otros cursos: agregá acá sus clases con el ID de YouTube (yt) y el link del PDF (pdf). */
 };
-/* Evaluación final por curso (se desbloquea al completar TODAS las lecciones) */
 const QUIZ = {
-  "excel-1":{ aprobar:2, preguntas:[
-    { q:"¿Qué símbolo inicia una fórmula en Excel?", ops:["#","=","+"], ok:1 },
-    { q:"¿Qué función suma un rango de celdas?", ops:["PROMEDIO","SUMA","CONTAR"], ok:1 },
-    { q:"Una referencia como $A$1 es…", ops:["Relativa","Absoluta","Mixta"], ok:1 },
+  "primer-contacto-ia":{ aprobar:2, preguntas:[
+    { q:"¿La IA puede equivocarse o inventar datos?", ops:["No, nunca","Sí, siempre conviene verificar","Solo si le pagás"], ok:1 },
+    { q:"Para obtener buenas respuestas conviene…", ops:["Escribir pedidos claros y con contexto","Escribir lo más corto posible","No dar ningún detalle"], ok:0 },
+    { q:"La IA es, sobre todo, una herramienta para…", ops:["Reemplazar tu criterio","Ayudarte a pensar y producir","Nada útil"], ok:1 },
   ]},
 };
-/* Usuario de DEMO. En producción esto lo maneja Firebase Auth + Firestore. */
-const DEMO_USER = { email:"alumno@demo.com", pass:"demo1234", nombre:"María", cursos:["excel-1"] };
-/* Cuenta de administración (demo). En producción: rol admin en Firebase. */
-const ADMIN = { usuario:"admin@tuprofeia.com", pass:"admin1234" };
-/* Alumnos habilitados por el admin (demo en localStorage). */
-function alumnos(){ return store.get("tpia_alumnos", []); }
-function saveAlumnos(a){ store.set("tpia_alumnos", a); }
-function val(id){ return (document.getElementById(id)||{}).value||""; }
 
-/* Sesión y progreso — DEMO con localStorage. En producción: Firestore. */
-const store = {
-  get(k,def){ try{ const v=localStorage.getItem(k); return v==null?def:JSON.parse(v); }catch(e){ return def; } },
-  set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} },
-  del(k){ try{ localStorage.removeItem(k); }catch(e){} },
-};
-let sesion = store.get("tpia_user", null);
-let progreso = store.get("tpia_prog", {});
-function saveProg(){ store.set("tpia_prog", progreso); }
+/* ── Sesión, perfil y progreso: ahora en Firebase, no en el navegador ── */
+const ADMIN_EMAIL = "tuprofeia2026@gmail.com";
+let sesion = null;        // { role:'admin'|'alumno', uid, email, nombre, cursos, preview }
+let perfilActual = null;  // perfil del alumno logueado (Firestore)
+let progreso = {};        // progreso del alumno logueado (Firestore)
+let adminAlumnos = [];    // lista de alumnos (para el panel de admin)
+let evalState = null;
+function val(id){ return (document.getElementById(id)||{}).value||""; }
+function perfil(){ return perfilActual; }
+function saveProg(){ if(!sesion||sesion.preview||!sesion.uid) return; db.collection("progreso").doc(sesion.uid).set(progreso).catch(e=>console.error("progreso",e)); }
 function lecState(cid,lid){ return (progreso[cid]&&progreso[cid][lid]) || { watched:0, done:false }; }
 function lessonUnlocked(cid,i){ if(i===0) return true; const L=LESSONS[cid]||[]; return lecState(cid,L[i-1].id).done; }
 function cursoCompleto(cid){ const L=LESSONS[cid]||[]; return L.length>0 && L.every(l=>lecState(cid,l.id).done); }
@@ -627,40 +620,7 @@ async function confirmInscription(){
   }
 }
 
-/* ═══════════════ AULA — vistas y lógica ═══════════════ */
-function loginHTML(){
-  return `<section class="narrow" style="padding:64px 24px 90px;max-width:440px">
-    <span class="eyebrow sage">Aula virtual</span>
-    <h1 style="font-size:34px;color:var(--ink);margin:12px 0 8px">Acceso alumnos</h1>
-    <p class="lead" style="font-size:15.5px;margin:0 0 24px">Accedé con el usuario que te dimos al confirmar tu pago.</p>
-    <div class="card">
-      <label class="field" style="margin-bottom:14px"><span class="lab">Usuario</span>
-        <span class="box"><i data-lucide="mail" class="icon"></i><input id="lg_email" type="text" placeholder="vos@ejemplo.com"></span></label>
-      <label class="field" style="margin-bottom:6px"><span class="lab">Contraseña</span>
-        <span class="box"><i data-lucide="lock" class="icon"></i><input id="lg_pass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')login()"></span></label>
-      <div id="lg_err" style="color:#B4462F;font-size:13px;min-height:18px;margin:6px 0"></div>
-      <button class="btn btn-honey btn-full" onclick="login()">Entrar <i data-lucide="log-in" class="icon"></i></button>
-      <p class="fineprint">Alumno demo: alumno@demo.com · demo1234<br>Admin demo: admin@tuprofeia.com · admin1234</p>
-    </div>
-  </section>`;
-}
-function login(){
-  const e=(document.getElementById("lg_email").value||"").trim().toLowerCase();
-  const p=document.getElementById("lg_pass").value||"";
-  if(e===ADMIN.usuario && p===ADMIN.pass){
-    sesion={ role:"admin", nombre:"Administración" }; store.set("tpia_user",sesion); state.view="admin"; render(); return;
-  }
-  let alu = alumnos().find(a=>a.usuario.toLowerCase()===e && a.pass===p);
-  if(!alu && e===DEMO_USER.email && p===DEMO_USER.pass) alu={ usuario:DEMO_USER.email, nombre:DEMO_USER.nombre, cursos:DEMO_USER.cursos };
-  if(alu){ sesion={ role:"alumno", usuario:alu.usuario, nombre:alu.nombre, cursos:alu.cursos }; store.set("tpia_user",sesion); state.view="aula"; render(); return; }
-  const el=document.getElementById("lg_err"); if(el) el.textContent="Usuario o contraseña incorrectos.";
-}
-function logout(){ sesion=null; store.del("tpia_user"); state.view="home"; render(); }
-
-/* ─── Perfil del alumno (para el certificado) ─── */
-function perfiles(){ return store.get("tpia_perfiles", {}); }
-function perfil(u){ return perfiles()[u]||null; }
-function savePerfil(u,p){ const all=perfiles(); all[u]=p; store.set("tpia_perfiles",all); }
+/* ═══════════════ AULA — vistas y lógica (Firebase) ═══════════════ */
 let fotoTmp="";
 function reducirFoto(file,cb){
   const r=new FileReader();
@@ -671,13 +631,40 @@ function reducirFoto(file,cb){
   r.readAsDataURL(file);
 }
 function avatar(p,size){
-  const s=size||64; const init=(p&&p.nombre?p.nombre[0]:(sesion&&sesion.nombre?sesion.nombre[0]:"?")).toUpperCase();
+  const s=size||64; const init=(((p&&p.nombre)||(sesion&&sesion.nombre)||"?")+"").charAt(0).toUpperCase();
   return (p&&p.foto)
     ? `<span class="pavatar" style="width:${s}px;height:${s}px"><img src="${p.foto}" alt=""></span>`
     : `<span class="pavatar" style="width:${s}px;height:${s}px;font-size:${Math.round(s*0.38)}px">${init}</span>`;
 }
 
-/* ─── Onboarding: primer ingreso ─── */
+/* ── Login real (Firebase Auth) ── */
+function loginHTML(){
+  return `<section class="narrow" style="padding:64px 24px 90px;max-width:440px">
+    <span class="eyebrow sage">Aula virtual</span>
+    <h1 style="font-size:34px;color:var(--ink);margin:12px 0 8px">Acceso alumnos</h1>
+    <p class="lead" style="font-size:15.5px;margin:0 0 24px">Accedé con el email y la contraseña que te dimos al confirmar tu pago.</p>
+    <div class="card">
+      <label class="field" style="margin-bottom:14px"><span class="lab">Email</span>
+        <span class="box"><i data-lucide="mail" class="icon"></i><input id="lg_email" type="email" placeholder="vos@ejemplo.com"></span></label>
+      <label class="field" style="margin-bottom:6px"><span class="lab">Contraseña</span>
+        <span class="box"><i data-lucide="lock" class="icon"></i><input id="lg_pass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')login()"></span></label>
+      <div id="lg_err" style="color:#B4462F;font-size:13px;min-height:18px;margin:6px 0"></div>
+      <button id="lg_btn" class="btn btn-honey btn-full" onclick="login()">Entrar <i data-lucide="log-in" class="icon"></i></button>
+    </div>
+  </section>`;
+}
+function login(){
+  const e=val("lg_email").trim().toLowerCase(), p=val("lg_pass");
+  const err=document.getElementById("lg_err"); if(err) err.textContent="";
+  const btn=document.getElementById("lg_btn"); if(btn){ btn.disabled=true; btn.innerHTML="Entrando…"; }
+  auth.signInWithEmailAndPassword(e,p).catch(()=>{
+    if(btn){ btn.disabled=false; btn.innerHTML='Entrar'; lucide.createIcons(); }
+    const el=document.getElementById("lg_err"); if(el) el.textContent="Email o contraseña incorrectos.";
+  });
+}
+function logout(){ auth.signOut(); state.view="home"; }
+
+/* ── Onboarding (primer ingreso) ── */
 function onboardingHTML(){
   return `<section class="narrow" style="padding:56px 24px 90px;max-width:560px">
     <span class="eyebrow sage">Bienvenido/a</span>
@@ -701,17 +688,18 @@ function onboardingHTML(){
   </section>`;
 }
 function onbFoto(ev){ const f=ev.target.files&&ev.target.files[0]; if(!f) return; reducirFoto(f,url=>{ fotoTmp=url; const d=document.getElementById("ob_drop"); if(d) d.innerHTML=`<img src="${url}" alt="">`; }); }
-function guardarPerfil(){
+async function guardarPerfil(){
   const nombre=val("ob_nombre").trim(), apellido=val("ob_apellido").trim(), dni=val("ob_dni").trim(), email=val("ob_email").trim();
   const err=document.getElementById("ob_err");
   if(!nombre||!apellido||!dni||!email.includes("@")){ if(err) err.textContent="Completá nombre, apellido, DNI y un email válido."; return; }
-  savePerfil(sesion.usuario,{ usuario:sesion.usuario, nombre, apellido, dni, email, foto:fotoTmp||"", registro:new Date().toISOString() });
-  fotoTmp=""; sesion.nombre=nombre; store.set("tpia_user",sesion); state.tab="cursos"; state.view="aula"; render();
+  const p={ nombre, apellido, dni, email, foto:fotoTmp||"", registro:new Date().toISOString() };
+  try{ await db.collection("perfiles").doc(sesion.uid).set(p); perfilActual=p; sesion.nombre=nombre; fotoTmp=""; state.tab="cursos"; state.view="aula"; render(); }
+  catch(e){ if(err) err.textContent="No pudimos guardar. Revisá tu conexión."; console.error(e); }
 }
 
-/* ─── Portal del alumno ─── */
+/* ── Portal del alumno ── */
 function aulaHTML(){
-  const p=perfil(sesion.usuario); const tab=state.tab||"cursos";
+  const p=perfil(); const tab=state.tab||"cursos";
   const banner = sesion.preview ? `<div class="card" style="background:var(--honeyTint);border-color:var(--honey);display:flex;align-items:center;gap:12px;margin-bottom:20px;padding:14px 18px"><i data-lucide="eye" class="icon" style="color:var(--honeyDeep)"></i><span style="font-size:14px;color:var(--honeyDeep);font-weight:600;flex-grow:1">Vista previa como alumno: ${esc(sesion.nombre)}</span><button class="btn btn-quiet" onclick="exitPreview()">Volver al panel</button></div>` : "";
   const item=(k,ic,l)=>`<button class="pitem${tab===k?" on":""}" onclick="setTab('${k}')"><i data-lucide="${ic}" class="icon"></i>${l}</button>`;
   const content = tab==="perfil"?tabPerfil(p) : tab==="historial"?tabHistorial() : tab==="consultas"?tabConsultas(p) : tabCursos();
@@ -730,12 +718,12 @@ function aulaHTML(){
   </section>`;
 }
 function setTab(t){ state.editPerfil=false; state.tab=t; render(); }
-
 function tabCursos(){
   const cursos=(sesion.cursos||[]).map(courseById).filter(Boolean);
   if(cursos.length===0) return `<div class="card">Todavía no tenés cursos habilitados.</div>`;
   return cursos.map(c=>{
     const L=LESSONS[c.id]||[]; const pct=pctCurso(c.id); const ok=cursoCompleto(c.id); const ap=(progreso[c.id]||{}).aprobado;
+    if(L.length===0) return `<div class="card" style="margin-bottom:20px"><h2 style="font-size:22px;color:var(--ink);margin-bottom:8px">${esc(c.title)}</h2><p style="color:var(--sub);margin:0">Las clases de este curso estarán disponibles muy pronto.</p></div>`;
     return `<div class="card" style="margin-bottom:20px">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:14px">
         <h2 style="font-size:22px;color:var(--ink)">${esc(c.title)}</h2>
@@ -748,7 +736,7 @@ function tabCursos(){
           return `<button class="lesson${un?"":" locked"}" ${un?`onclick="openLeccion('${c.id}','${l.id}')"`:"disabled"}>
             <span class="l-ic" style="color:${col}"><i data-lucide="${ic}" class="icon"></i></span>
             <span class="l-txt"><strong>Clase ${i+1}</strong> — ${esc(l.titulo)}</span>
-            <span class="l-meta">${st.done?"Completada":un?l.min+" min":"Bloqueada"}</span>
+            <span class="l-meta">${st.done?"Completada":un?"Ver clase":"Bloqueada"}</span>
           </button>`; }).join("")}
         <button class="lesson${ok?"":" locked"}" ${ok?`onclick="openEval('${c.id}')"`:"disabled"} style="border-color:${ok?"var(--honey)":"var(--border)"}">
           <span class="l-ic" style="color:${ap?"var(--sage)":ok?"var(--honey)":"var(--sub)"}"><i data-lucide="${ap?"award":ok?"clipboard-check":"lock"}" class="icon"></i></span>
@@ -774,28 +762,29 @@ function tabPerfil(p){
       <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn btn-honey" onclick="guardarEdicion()"><i data-lucide="check" class="icon"></i> Guardar cambios</button><button class="btn btn-quiet" onclick="state.editPerfil=false;render()">Cancelar</button></div>
     </div>`;
   }
-  const rows=[["Fecha de registro",new Date(p.registro).toLocaleString("es-AR")],["Nombre",p.nombre],["Apellido",p.apellido],["Nombre de usuario",sesion.usuario],["DNI",p.dni],["Email",p.email]];
+  const rows=[["Fecha de registro",p.registro?new Date(p.registro).toLocaleString("es-AR"):"—"],["Nombre",p.nombre],["Apellido",p.apellido],["Email",p.email],["DNI",p.dni]];
   return `<div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px;flex-wrap:wrap">
       <div style="display:flex;align-items:center;gap:14px">${avatar(p,56)}<h2 style="font-size:22px;color:var(--ink)">Mi perfil</h2></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn btn-quiet" onclick="state.editPerfil=true;render()"><i data-lucide="pencil" class="icon"></i> Editar datos</button>
+        ${sesion.preview?"":`<button class="btn btn-quiet" onclick="state.editPerfil=true;render()"><i data-lucide="pencil" class="icon"></i> Editar datos</button>
         <label class="btn btn-quiet" for="pf_foto" style="cursor:pointer"><i data-lucide="camera" class="icon"></i> Cambiar foto</label>
-        <input id="pf_foto" type="file" accept="image/*" onchange="cambiarFoto(event)" style="display:none">
+        <input id="pf_foto" type="file" accept="image/*" onchange="cambiarFoto(event)" style="display:none">`}
       </div>
     </div>
     ${rows.map(r=>`<div class="prow"><span class="pk">${r[0]}</span><span class="pv">${esc(r[1]||"—")}</span></div>`).join("")}
   </div>`;
 }
-function guardarEdicion(){
+async function guardarEdicion(){
   const nombre=val("ep_nombre").trim(), apellido=val("ep_apellido").trim(), dni=val("ep_dni").trim(), email=val("ep_email").trim();
   const err=document.getElementById("ep_err");
   if(!nombre||!apellido||!dni||!email.includes("@")){ if(err) err.textContent="Completá nombre, apellido, DNI y un email válido."; return; }
-  const p=perfil(sesion.usuario)||{ usuario:sesion.usuario, registro:new Date().toISOString(), foto:"" };
-  p.nombre=nombre; p.apellido=apellido; p.dni=dni; p.email=email;
-  savePerfil(sesion.usuario,p); sesion.nombre=nombre; store.set("tpia_user",sesion); state.editPerfil=false; render();
+  const p=Object.assign({}, perfilActual||{}, { nombre, apellido, dni, email });
+  if(!p.registro) p.registro=new Date().toISOString();
+  try{ await db.collection("perfiles").doc(sesion.uid).set(p); perfilActual=p; sesion.nombre=nombre; state.editPerfil=false; render(); }
+  catch(e){ if(err) err.textContent="No pudimos guardar. Revisá tu conexión."; console.error(e); }
 }
-function cambiarFoto(ev){ const f=ev.target.files&&ev.target.files[0]; if(!f) return; reducirFoto(f,url=>{ const p=perfil(sesion.usuario)||{usuario:sesion.usuario}; p.foto=url; savePerfil(sesion.usuario,p); render(); }); }
+function cambiarFoto(ev){ const f=ev.target.files&&ev.target.files[0]; if(!f) return; reducirFoto(f,url=>{ const p=Object.assign({}, perfilActual||{}, {foto:url}); db.collection("perfiles").doc(sesion.uid).set(p).then(()=>{ perfilActual=p; render(); }).catch(e=>console.error(e)); }); }
 function tabHistorial(){
   const cursos=(sesion.cursos||[]).map(courseById).filter(Boolean);
   if(!cursos.length) return `<div class="card">Sin actividad todavía.</div>`;
@@ -815,83 +804,74 @@ function tabConsultas(p){
 function enviarConsulta(){
   const asunto=val("cs_asunto").trim()||"Consulta de alumno"; const msg=val("cs_msg").trim();
   if(!msg){ alert("Escribí tu consulta antes de enviar."); return; }
-  const p=perfil(sesion.usuario);
-  const cuerpo="Consulta de: "+(p?p.nombre+" "+p.apellido:sesion.usuario)+"\nUsuario: "+sesion.usuario+"\nEmail: "+(p?p.email:"")+"\n\n"+msg;
+  const p=perfil();
+  const cuerpo="Consulta de: "+(p?p.nombre+" "+(p.apellido||""):sesion.email)+"\nEmail: "+(p?p.email:sesion.email)+"\n\n"+msg;
   window.location.href="mailto:"+PAGO.email+"?subject="+encodeURIComponent("[Consulta] "+asunto)+"&body="+encodeURIComponent(cuerpo);
 }
 
-/* Reproductor (demo). En producción: Vimeo Player API en lugar del simulador. */
-let player=null;
-function openLeccion(cid,lid){
-  const L=(LESSONS[cid]||[]).find(x=>x.id===lid); const st=lecState(cid,lid);
-  player={ cid, lid, dur:L.min*60, t:Math.min(st.watched,L.min*60), max:st.watched, playing:false, timer:null };
-  state.view="leccion"; render();
-}
-function fmt(s){ s=Math.floor(s); return Math.floor(s/60)+":"+String(s%60).padStart(2,"0"); }
+/* ── Reproductor de YouTube ── */
+let curLec=null, ytPlayer=null, ytTimer=null, ytMax=0, ytApiLoading=false;
+function lessonById(cid,lid){ return (LESSONS[cid]||[]).find(x=>x.id===lid); }
+function openLeccion(cid,lid){ curLec={cid,lid}; const st=lecState(cid,lid); ytMax=st.watched||0; state.view="leccion"; render(); }
 function leccionHTML(){
-  const L=(LESSONS[player.cid]||[]).find(x=>x.id===player.lid); const c=courseById(player.cid);
+  const L=lessonById(curLec.cid,curLec.lid); const c=courseById(curLec.cid); const st=lecState(curLec.cid,curLec.lid);
   return `<section class="wrap" style="padding:32px 24px 84px;max-width:820px">
     <button class="back" onclick="closeLeccion()"><i data-lucide="arrow-left" class="icon"></i> Volver al aula</button>
     <div style="font-size:13px;color:var(--sub);margin-bottom:4px">${esc(c.title)}</div>
-    <h1 style="font-size:28px;color:var(--ink);margin-bottom:20px">${esc(L.titulo)}</h1>
+    <h1 style="font-size:28px;color:var(--ink);margin-bottom:18px">${esc(L.titulo)}</h1>
     <div class="player">
-      <div class="screen"><i data-lucide="video" class="icon" style="width:46px;height:46px"></i><small>Acá va el video privado de Vimeo.<br>En esta demo el avance está acelerado para que puedas probarlo.</small></div>
-      <div class="pbar" id="pl_bar" onclick="seek(event)"><div class="pmax" id="pl_max"></div><div class="pfill" id="pl_fill"></div></div>
+      <div class="ytwrap"><div id="ytplayer"></div></div>
+      <div class="pbar"><div class="pfill" id="pl_fill" style="width:${st.done?100:0}%"></div></div>
       <div class="pctrl">
-        <button class="btn btn-primary" id="pl_play" onclick="togglePlay()"><i data-lucide="play" class="icon"></i> Reproducir</button>
-        <span id="pl_time" style="font-size:13px;color:var(--sub)">0:00 / ${fmt(L.min*60)}</span>
-        <span id="pl_done" style="margin-left:auto"></span>
+        <span id="pl_done">${st.done?'<span class="chip"><i data-lucide="check" class="icon"></i>Completada</span>':''}</span>
+        ${L.pdf?`<a class="btn btn-quiet" href="${L.pdf}" target="_blank" rel="noopener" style="margin-left:auto;text-decoration:none"><i data-lucide="file-text" class="icon"></i> Material (PDF)</a>`:''}
       </div>
     </div>
-    <p class="fineprint" style="text-align:left;margin-top:14px">${BLOQUEAR_ADELANTO?"No podés adelantar más allá de lo ya visto (retroceder sí).":"Podés navegar libre; la clase se marca completa al mirar el "+Math.round(UMBRAL_COMPLETADO*100)+"%."}</p>
+    <p class="fineprint" style="text-align:left;margin-top:14px">La clase se marca como completa cuando mirás el ${Math.round(UMBRAL_COMPLETADO*100)}%.</p>
   </section>`;
 }
-function paintPlayer(){
-  if(!player) return;
-  const f=document.getElementById("pl_fill"), m=document.getElementById("pl_max"), t=document.getElementById("pl_time"), d=document.getElementById("pl_done");
-  if(f) f.style.width=(player.t/player.dur*100)+"%";
-  if(m) m.style.width=(player.max/player.dur*100)+"%";
-  if(t) t.textContent=fmt(player.t)+" / "+fmt(player.dur);
-  const st=lecState(player.cid,player.lid);
-  if(d) d.innerHTML=st.done?'<span class="chip"><i data-lucide="check" class="icon"></i>Completada</span>':"";
-  lucide.createIcons();
+function ensureYTApi(cb){
+  if(window.YT && window.YT.Player){ cb(); return; }
+  const prev=window.onYouTubeIframeAPIReady;
+  window.onYouTubeIframeAPIReady=function(){ if(prev) prev(); cb(); };
+  if(!ytApiLoading){ ytApiLoading=true; const t=document.createElement("script"); t.src="https://www.youtube.com/iframe_api"; document.head.appendChild(t); }
 }
-function togglePlay(){
-  if(!player) return; player.playing=!player.playing; const b=document.getElementById("pl_play");
-  if(player.playing){ b.innerHTML='<i data-lucide="pause" class="icon"></i> Pausar'; player.timer=setInterval(tick,150); }
-  else { b.innerHTML='<i data-lucide="play" class="icon"></i> Reproducir'; clearInterval(player.timer); }
-  lucide.createIcons();
+function initYT(){
+  const L=lessonById(curLec.cid,curLec.lid); if(!L) return;
+  ensureYTApi(()=>{
+    if(ytPlayer&&ytPlayer.destroy){ try{ytPlayer.destroy();}catch(e){} ytPlayer=null; }
+    if(!document.getElementById("ytplayer")) return;
+    ytPlayer=new YT.Player("ytplayer",{ videoId:L.yt, playerVars:{ rel:0, modestbranding:1, playsinline:1 },
+      events:{ onReady:()=>{ if(ytTimer) clearInterval(ytTimer); ytTimer=setInterval(ytTick,1000); } } });
+  });
 }
-function tick(){
-  player.t=Math.min(player.dur, player.t+DEMO_STEP);
-  if(player.t>player.max) player.max=player.t;
-  progreso[player.cid]=progreso[player.cid]||{};
-  const prev=progreso[player.cid][player.lid]||{watched:0,done:false};
-  const done=prev.done || (player.max>=player.dur*UMBRAL_COMPLETADO);
-  progreso[player.cid][player.lid]={ watched:Math.max(prev.watched,player.max), done };
-  saveProg(); paintPlayer();
-  if(player.t>=player.dur){ player.playing=false; clearInterval(player.timer); const b=document.getElementById("pl_play"); if(b) b.innerHTML='<i data-lucide="rotate-ccw" class="icon"></i> Volver a ver'; lucide.createIcons(); }
+function ytTick(){
+  if(!ytPlayer||!ytPlayer.getCurrentTime||!curLec) return;
+  const t=ytPlayer.getCurrentTime()||0, d=(ytPlayer.getDuration&&ytPlayer.getDuration())||0;
+  if(d<=0) return;
+  if(t>ytMax) ytMax=t;
+  const wasDone=lecState(curLec.cid,curLec.lid).done;
+  const done = wasDone || (ytMax >= d*UMBRAL_COMPLETADO);
+  progreso[curLec.cid]=progreso[curLec.cid]||{};
+  const prevW=(progreso[curLec.cid][curLec.lid]||{}).watched||0;
+  progreso[curLec.cid][curLec.lid]={ watched:Math.max(prevW,ytMax), done };
+  const fill=document.getElementById("pl_fill");
+  if(fill) fill.style.width=(done?100:Math.min(100,ytMax/d*100)).toFixed(1)+"%";
+  if(done && !wasDone){ saveProg(); const dn=document.getElementById("pl_done"); if(dn){ dn.innerHTML='<span class="chip"><i data-lucide="check" class="icon"></i>Completada</span>'; lucide.createIcons(); } }
 }
-function seek(ev){
-  if(!player) return; const bar=document.getElementById("pl_bar"); const r=bar.getBoundingClientRect();
-  let p=(ev.clientX-r.left)/r.width; p=Math.max(0,Math.min(1,p)); let target=p*player.dur;
-  if(BLOQUEAR_ADELANTO && target>player.max) target=player.max;
-  player.t=target; paintPlayer();
-}
-function closeLeccion(){ if(player&&player.timer) clearInterval(player.timer); player=null; state.view="aula"; render(); }
+function closeLeccion(){ if(ytTimer){ clearInterval(ytTimer); ytTimer=null; } if(ytPlayer&&ytPlayer.destroy){ try{ytPlayer.destroy();}catch(e){} ytPlayer=null; } saveProg(); curLec=null; state.view="aula"; render(); }
 
-/* Evaluación */
-let evalState=null;
+/* ── Evaluación ── */
 function openEval(cid){ evalState={ cid, result:null }; state.view="evaluacion"; render(); }
 function evalHTML(){
   const Q=QUIZ[evalState.cid]; const c=courseById(evalState.cid);
-  if(!Q) return `<section class="narrow" style="padding:64px 24px"><button class="back" onclick="state.view='aula';render()"><i data-lucide="arrow-left" class="icon"></i> Volver</button><p>Evaluación no cargada para este curso.</p></section>`;
+  if(!Q) return `<section class="narrow" style="padding:64px 24px"><button class="back" onclick="state.view='aula';render()"><i data-lucide="arrow-left" class="icon"></i> Volver</button><p>La evaluación de este curso estará disponible pronto.</p></section>`;
   if(evalState.result){ const pass=evalState.result.score>=Q.aprobar;
     return `<section class="narrow" style="padding:64px 24px 90px;text-align:center;max-width:520px">
       <span style="width:66px;height:66px;border-radius:20px;background:${pass?"var(--sageTint)":"var(--honeyTint)"};display:grid;place-items:center;margin:0 auto 20px"><i data-lucide="${pass?"award":"rotate-ccw"}" class="icon" style="width:32px;height:32px;color:${pass?"var(--sageDeep)":"var(--honeyDeep)"}"></i></span>
       <h1 style="font-size:32px;color:var(--ink);margin-bottom:10px">${pass?"¡Aprobaste!":"Casi…"}</h1>
       <p class="lead" style="margin:0 auto 24px;max-width:420px">Obtuviste ${evalState.result.score} de ${Q.preguntas.length}. ${pass?"Ya podés descargar tu certificado.":"Necesitás "+Q.aprobar+" correctas. Repasá y volvé a intentar."}</p>
-      ${pass?`<button class="btn btn-honey" onclick="alert('Certificado: se genera en la fase de producción.')"><i data-lucide="download" class="icon"></i> Descargar certificado</button>`:`<button class="btn btn-primary" onclick="openEval('${evalState.cid}')">Reintentar</button>`}
+      ${pass?`<button class="btn btn-honey" onclick="alert('El certificado en PDF se genera en el próximo paso.')"><i data-lucide="download" class="icon"></i> Descargar certificado</button>`:`<button class="btn btn-primary" onclick="openEval('${evalState.cid}')">Reintentar</button>`}
       <div style="margin-top:16px"><button class="btn btn-quiet" onclick="state.view='aula';render()">Volver al aula</button></div>
     </section>`;
   }
@@ -913,71 +893,75 @@ function submitEval(){
   render();
 }
 
-/* ═══════════════ ADMIN — panel ═══════════════ */
+/* ═══════════════ ADMIN — panel (Firebase) ═══════════════ */
+function loadAlumnos(){ db.collection("alumnos").get().then(snap=>{ adminAlumnos=snap.docs.map(d=>d.data()); render(); }).catch(e=>{ console.error("alumnos",e); render(); }); }
 function adminHTML(){
-  const list=alumnos();
-  const opts=courses.map(c=>`<option value="${c.id}">${esc(c.title)}</option>`).join("");
+  const list=adminAlumnos; const opts=courses.map(c=>`<option value="${c.id}">${esc(c.title)}</option>`).join("");
   return `<section class="wrap" style="padding:48px 24px 84px;max-width:900px">
     <span class="eyebrow">Panel de administración</span>
     <h1 style="font-size:36px;color:var(--ink);margin:12px 0 6px">Alumnos</h1>
-    <p class="lead" style="margin:0 0 20px">Habilitá el acceso a quienes ya pagaron y previsualizá cómo ven el aula.</p>
-    <div style="margin-bottom:22px"><button class="btn btn-quiet" onclick="verDemo()"><i data-lucide="eye" class="icon"></i> Previsualizar aula (curso demo)</button></div>
-
+    <p class="lead" style="margin:0 0 20px">Creá el acceso de quienes ya pagaron y previsualizá cómo ven el aula.</p>
+    <div style="margin-bottom:22px"><button class="btn btn-quiet" onclick="verDemo()"><i data-lucide="eye" class="icon"></i> Previsualizar aula</button></div>
     <div class="card" style="margin-bottom:24px">
       <div class="fcard-head"><span class="fcard-ic"><i data-lucide="user-plus" class="icon"></i></span><h2>Habilitar un alumno</h2></div>
       <div class="fgrid">
         <label class="field"><span class="lab">Nombre o referencia</span><span class="box"><i data-lucide="user" class="icon"></i><input id="ad_nombre" placeholder="Ej.: Juan Pérez"></span></label>
         <label class="field"><span class="lab">Curso pagado</span><span class="box"><i data-lucide="book-open" class="icon"></i><select id="ad_curso" style="border:none;outline:none;background:transparent;padding:12px 0;font-size:15px;width:100%;font-family:var(--sans);color:var(--ink)">${opts}</select></span></label>
-        <label class="field"><span class="lab">Usuario (email o referencia única)</span><span class="box"><i data-lucide="at-sign" class="icon"></i><input id="ad_user" placeholder="juan@correo.com"></span></label>
-        <label class="field"><span class="lab">Contraseña</span><span class="box"><i data-lucide="lock" class="icon"></i><input id="ad_pass" placeholder="la que definas"></span></label>
+        <label class="field"><span class="lab">Email del alumno</span><span class="box"><i data-lucide="at-sign" class="icon"></i><input id="ad_user" type="email" placeholder="juan@correo.com"></span></label>
+        <label class="field"><span class="lab">Contraseña</span><span class="box"><i data-lucide="lock" class="icon"></i><input id="ad_pass" placeholder="mínimo 6 caracteres"></span></label>
       </div>
       <div id="ad_err" style="color:#B4462F;font-size:13px;min-height:18px;margin:2px 0 4px"></div>
-      <p style="font-size:12.5px;color:var(--sub);margin:0 0 12px;line-height:1.5">¿El alumno ya está habilitado y compró otro curso? Poné su <strong>mismo usuario</strong> y elegí el curso nuevo: se suma a su cuenta (no crea otra).</p>
-      <button class="btn btn-honey" onclick="habilitarAlumno()"><i data-lucide="check" class="icon"></i> Habilitar acceso</button>
+      <p style="font-size:12.5px;color:var(--sub);margin:0 0 12px;line-height:1.5">¿El alumno ya existe y compró otro curso? Poné su <strong>mismo email</strong> y elegí el curso nuevo: se suma a su cuenta.</p>
+      <button id="ad_btn" class="btn btn-honey" onclick="habilitarAlumno()"><i data-lucide="check" class="icon"></i> Habilitar acceso</button>
     </div>
-
     <h2 style="font-size:20px;color:var(--ink);margin-bottom:12px">Habilitados (${list.length})</h2>
-    ${list.length===0 ? `<div class="card" style="color:var(--sub)">Todavía no habilitaste a nadie.</div>` :
-      `<div style="display:grid;gap:10px">${list.map((a,i)=>`<div class="card" style="display:flex;align-items:center;gap:12px;padding:14px 16px;flex-wrap:wrap">
-        <div style="flex-grow:1;min-width:180px"><div style="font-weight:700;color:var(--ink)">${esc(a.nombre)}</div><div style="font-size:13px;color:var(--sub)">${esc(a.usuario)} · ${(a.cursos||[]).map(id=>{const c=courseById(id);return c?esc(c.title):esc(id);}).join(", ")}</div></div>
-        <button class="btn btn-quiet" onclick="verAlumno(${i})"><i data-lucide="eye" class="icon"></i> Ver aula</button>
-        <button class="btn btn-quiet" onclick="eliminarAlumno(${i})" style="color:#B4462F"><i data-lucide="trash-2" class="icon"></i></button>
+    ${list.length===0?`<div class="card" style="color:var(--sub)">Todavía no habilitaste a nadie.</div>`:
+      `<div style="display:grid;gap:10px">${list.map(a=>`<div class="card" style="display:flex;align-items:center;gap:12px;padding:14px 16px;flex-wrap:wrap">
+        <div style="flex-grow:1;min-width:180px"><div style="font-weight:700;color:var(--ink)">${esc(a.nombre||a.email)}</div><div style="font-size:13px;color:var(--sub)">${esc(a.email)} · ${(a.cursos||[]).map(id=>{const c=courseById(id);return c?esc(c.title):esc(id);}).join(", ")}</div></div>
+        <button class="btn btn-quiet" onclick="verAlumno('${esc(a.email)}')"><i data-lucide="eye" class="icon"></i> Ver aula</button>
+        <button class="btn btn-quiet" onclick="eliminarAlumno('${esc(a.email)}')" style="color:#B4462F"><i data-lucide="trash-2" class="icon"></i></button>
       </div>`).join("")}</div>`}
-    <p class="muted-note">Demo: los accesos se guardan en este navegador. En producción, "Habilitar" crea la cuenta en Firebase Auth (contraseña hasheada).</p>
+    <p class="muted-note">Al habilitar se crea la cuenta en Firebase (contraseña encriptada). Las inscripciones las ves en la consola de Firebase → Firestore.</p>
   </section>`;
 }
-function habilitarAlumno(){
-  const nombre=val("ad_nombre").trim(), user=val("ad_user").trim().toLowerCase(), pass=val("ad_pass").trim(), curso=val("ad_curso");
-  const err=document.getElementById("ad_err");
-  if(!user){ if(err) err.textContent="Ingresá el usuario."; return; }
-  const list=alumnos();
-  const idx=list.findIndex(a=>a.usuario.toLowerCase()===user);
-  if(idx>=0){
-    // El alumno ya existe: le sumamos el curso a su MISMA cuenta (un usuario, varios cursos).
-    const a=list[idx];
-    if((a.cursos||[]).includes(curso)){ if(err) err.textContent="Ese alumno ya tiene ese curso habilitado."; return; }
-    a.cursos=[...(a.cursos||[]), curso]; saveAlumnos(list); render(); return;
+async function habilitarAlumno(){
+  const nombre=val("ad_nombre").trim(), email=val("ad_user").trim().toLowerCase(), pass=val("ad_pass").trim(), curso=val("ad_curso");
+  const err=document.getElementById("ad_err"); if(err) err.textContent="";
+  if(!email){ if(err) err.textContent="Ingresá el email del alumno."; return; }
+  const btn=document.getElementById("ad_btn"); if(btn){ btn.disabled=true; btn.innerHTML="Procesando…"; }
+  const ref=db.collection("alumnos").doc(email);
+  try{
+    const snap=await ref.get();
+    if(snap.exists){
+      const d=snap.data(); const cursos=Array.from(new Set([...(d.cursos||[]),curso]));
+      await ref.set({ cursos }, {merge:true});
+    } else {
+      if(!nombre||pass.length<6){ if(err) err.textContent="Para un alumno nuevo, poné nombre y una contraseña de 6 caracteres o más."; if(btn){ btn.disabled=false; btn.innerHTML='Habilitar acceso'; lucide.createIcons(); } return; }
+      try{ await adminAuth().createUserWithEmailAndPassword(email,pass); await adminAuth().signOut(); }
+      catch(e){ if(e.code!=="auth/email-already-in-use") throw e; }
+      await ref.set({ email, nombre, cursos:[curso], creado: firebase.firestore.FieldValue.serverTimestamp() });
+    }
+    await loadAlumnos();
+  }catch(e){
+    if(btn){ btn.disabled=false; btn.innerHTML='Habilitar acceso'; lucide.createIcons(); }
+    if(err) err.textContent = (e.code==="auth/weak-password"?"La contraseña debe tener 6+ caracteres.":e.code==="auth/invalid-email"?"El email no es válido.":"No se pudo habilitar. Revisá los datos.");
+    console.error(e);
   }
-  if(user===DEMO_USER.email){ if(err) err.textContent="Ese usuario está reservado para la cuenta demo. Usá otro."; return; }
-  // Alumno nuevo: sí necesita nombre y contraseña.
-  if(!nombre||!pass){ if(err) err.textContent="Para un alumno nuevo, completá nombre y contraseña."; return; }
-  list.push({ usuario:user, pass, nombre, cursos:[curso] }); saveAlumnos(list); render();
 }
-function eliminarAlumno(i){ const list=alumnos(); list.splice(i,1); saveAlumnos(list); render(); }
-function impersonar(a){ sesion={ role:"alumno", preview:true, usuario:a.usuario, nombre:a.nombre, cursos:a.cursos }; state.view="aula"; render(); }
-function verDemo(){ impersonar({ usuario:DEMO_USER.email, nombre:DEMO_USER.nombre+" (demo)", cursos:DEMO_USER.cursos }); }
-function verAlumno(i){ const a=alumnos()[i]; if(a) impersonar(a); }
-function exitPreview(){ sesion=store.get("tpia_user",{role:"admin",nombre:"Administración"}); state.view="admin"; render(); }
+async function eliminarAlumno(email){ try{ await db.collection("alumnos").doc(email).delete(); await loadAlumnos(); }catch(e){ console.error(e); alert("No se pudo quitar el acceso."); } }
+function impersonar(a){ sesion={ role:"alumno", preview:true, uid:null, email:a.email, nombre:a.nombre||a.email, cursos:a.cursos||[] }; perfilActual={ nombre:a.nombre||"Alumno", apellido:"", dni:"—", email:a.email, registro:new Date().toISOString(), foto:"" }; progreso={}; state.tab="cursos"; state.view="aula"; render(); }
+function verDemo(){ impersonar({ email:"(vista previa)", nombre:"Vista previa", cursos:["primer-contacto-ia"] }); }
+function verAlumno(email){ const a=adminAlumnos.find(x=>x.email===email); if(a) impersonar(a); }
+function exitPreview(){ if(auth.currentUser){ sesion={ role:"admin", uid:auth.currentUser.uid, email:auth.currentUser.email, nombre:"Administración" }; perfilActual=null; progreso={}; state.view="admin"; loadAlumnos(); } else { sesion=null; state.view="home"; render(); } }
 
+/* ═══════════════ RENDER ═══════════════ */
 function render(){
   const app=document.getElementById("app");
   let v=state.view; const c=courseById(state.courseId);
-  // guardas de sesión / estado
-  if(v==="admin" && (!sesion || sesion.role!=="admin")) v=state.view="login";
+  if(v==="admin" && !(sesion&&sesion.role==="admin")) v=state.view="login";
   if((v==="aula"||v==="leccion"||v==="evaluacion"||v==="onboarding") && !sesion) v=state.view="login";
-  // Primer ingreso de un alumno real: completar perfil antes del aula.
-  if(v==="aula" && sesion && sesion.role==="alumno" && !sesion.preview && !perfil(sesion.usuario)) v=state.view="onboarding";
-  if(v==="leccion" && !player) v=state.view="aula";
+  if(v==="aula" && sesion && sesion.role==="alumno" && !sesion.preview && !perfilActual) v=state.view="onboarding";
+  if(v==="leccion" && !curLec) v=state.view="aula";
   if(v==="evaluacion" && !evalState) v=state.view="aula";
 
   if(v==="home") app.innerHTML=homeHTML();
@@ -996,22 +980,39 @@ function render(){
 
   const navView=(v==="course"||v==="inscription")?"home":v;
   let navHTML=NAV.map(([k,l])=>`<button class="navlink${navView===k?' active':''}" onclick="go('${k}')">${l}</button>`).join("");
-  if(sesion && sesion.role==="admin"){
-    navHTML += `<button class="navlink${v==="admin"?' active':''}" onclick="go('admin')">Panel</button><button class="navlink" onclick="logout()">Salir</button>`;
-  } else if(sesion && sesion.preview){
-    navHTML += `<button class="navlink" onclick="exitPreview()">Volver al panel</button>`;
-  } else if(sesion){
-    navHTML += `<button class="navlink${["aula","leccion","evaluacion"].includes(v)?' active':''}" onclick="go('aula')">Mi aula</button><button class="navlink" onclick="logout()">Salir</button>`;
-  } else {
-    navHTML += `<button class="navlink${v==="login"?' active':''}" onclick="go('login')">Acceso alumnos</button>`;
-  }
+  if(sesion && sesion.role==="admin"){ navHTML += `<button class="navlink${v==="admin"?' active':''}" onclick="state.view='admin';loadAlumnos()">Panel</button><button class="navlink" onclick="logout()">Salir</button>`; }
+  else if(sesion && sesion.preview){ navHTML += `<button class="navlink" onclick="exitPreview()">Volver al panel</button>`; }
+  else if(sesion){ navHTML += `<button class="navlink${["aula","leccion","evaluacion","onboarding"].includes(v)?' active':''}" onclick="go('aula')">Mi aula</button><button class="navlink" onclick="logout()">Salir</button>`; }
+  else { navHTML += `<button class="navlink${v==="login"?' active':''}" onclick="go('login')">Acceso alumnos</button>`; }
   document.getElementById("nav").innerHTML=navHTML;
   document.body.className="";
   document.getElementById("foot-copy").textContent="© "+new Date().getFullYear()+" Tu Profe IA · Camila Paniz y Nicolás Kwaszka";
   lucide.createIcons();
   window.scrollTo({top:0});
-  if(v==="leccion") paintPlayer();
+  if(v==="leccion") initYT();
 }
+
+/* ═══════════════ SESIÓN (Firebase Auth) ═══════════════ */
+auth.onAuthStateChanged(async (user)=>{
+  if(!user){
+    sesion=null; perfilActual=null; progreso={};
+    if(["admin","aula","leccion","evaluacion","onboarding"].includes(state.view)) state.view="home";
+    render(); return;
+  }
+  const email=(user.email||"").toLowerCase();
+  if(email===ADMIN_EMAIL.toLowerCase()){
+    sesion={ role:"admin", uid:user.uid, email, nombre:"Administración" }; perfilActual=null; progreso={};
+    if(state.view==="login"){ state.view="admin"; loadAlumnos(); return; }
+    render(); return;
+  }
+  let cursos=[], nombre=email;
+  try{ const s=await db.collection("alumnos").doc(email).get(); if(s.exists){ const d=s.data(); cursos=d.cursos||[]; nombre=d.nombre||nombre; } }catch(e){ console.error(e); }
+  try{ const ps=await db.collection("perfiles").doc(user.uid).get(); perfilActual=ps.exists?ps.data():null; }catch(e){ perfilActual=null; }
+  try{ const gp=await db.collection("progreso").doc(user.uid).get(); progreso=gp.exists?(gp.data()||{}):{}; }catch(e){ progreso={}; }
+  sesion={ role:"alumno", uid:user.uid, email, nombre:(perfilActual&&perfilActual.nombre)||nombre, cursos };
+  if(state.view==="login") state.view="aula";
+  render();
+});
 render();
 </script>
 </body>
