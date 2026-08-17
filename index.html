@@ -118,6 +118,22 @@
   .svc-list li{display:flex;gap:9px;align-items:flex-start;font-size:14.5px;line-height:1.5;color:var(--ink)}
   .svc-list .icon{width:16px;height:16px;color:var(--sage);flex-shrink:0;margin-top:3px}
   .cta-emp{background:var(--honeyTint);border:1px solid var(--border);border-radius:18px;padding:28px 30px;display:flex;justify-content:space-between;align-items:center;gap:24px;flex-wrap:wrap}
+  /* Centrado general de textos de las secciones públicas */
+  .hero-solo{text-align:center}
+  .hero-solo>div{justify-content:center}
+  .chiprow{justify-content:center}
+  .sec-head{text-align:center}
+  .ccard{text-align:center;align-items:center}
+  .ccard-top{justify-content:center;gap:14px}
+  .pathcard{text-align:center;align-items:center}
+  .pathcard .more{justify-content:center}
+  .svc{text-align:center}
+  .svc-head{justify-content:center}
+  .svc-list{text-align:left;display:inline-block;margin:0 auto}
+  .narrow{text-align:center}
+  .narrow .lead{margin-left:auto;margin-right:auto}
+  .cta-emp{text-align:center;justify-content:center}
+  .cta-emp>div:last-child{justify-content:center}
   /* Certificado */
   .cert{background:#fff;border-radius:10px;padding:12px;box-shadow:var(--shadow)}
   .cert-inner{border:3px double #23306a;border-radius:6px;padding:46px 42px;text-align:center;font-family:var(--serif)}
@@ -513,7 +529,7 @@ function homeHTML(){
   <section class="wrap" id="cursos" style="padding:56px 24px 84px">
     <div class="sec-head"><span class="eyebrow">${esc(CONTENIDO.cursos_eyebrow)}</span><h2>${esc(CONTENIDO.cursos_titulo)}</h2></div>
     <div class="grid-courses">
-      ${courses.map(c=>{ const badge=cursoBadge(c); const disp=cursoDisponible(c);
+      ${courses.filter(c=>c.visible!==false).map(c=>{ const badge=cursoBadge(c); const disp=cursoDisponible(c);
         return `<button class="ccard${c.featured?' featured':''}${disp?'':' soon'}" onclick="openCourse('${c.id}')">
           ${badge?`<span class="tag${c.estado==='no'?' muted':''}">${badge}</span>`:(c.featured&&c.tag?`<span class="tag">${c.tag}</span>`:"")}
           <div class="ccard-top">${chip("monitor",c.modality)}<span class="price">${ars(c.price)}</span></div>
@@ -1309,6 +1325,7 @@ function syncCursos(){
     c.price=n("cc"+i+"_price",c.price); c.hours=n("cc"+i+"_hours",c.hours); c.classes=n("cc"+i+"_classes",c.classes);
     if(gv("cc"+i+"_modality")!==undefined) c.modality=gv("cc"+i+"_modality").trim();
     if(gv("cc"+i+"_estado")!==undefined) c.estado=gv("cc"+i+"_estado");
+    if(gv("cc"+i+"_visible")!==undefined) c.visible = gv("cc"+i+"_visible")!=="no";
     if(gv("cc"+i+"_desde")!==undefined) c.desde=gv("cc"+i+"_desde").trim();
     if(arr("cc"+i+"_learn")!==undefined) c.learn=arr("cc"+i+"_learn");
     if(gv("cc"+i+"_forwho")!==undefined) c.forWho=gv("cc"+i+"_forwho").trim();
@@ -1317,16 +1334,16 @@ function syncCursos(){
     if(arr("cc"+i+"_syllabus")!==undefined) c.syllabus=arr("cc"+i+"_syllabus");
   });
 }
-function addCurso(){ syncCursos(); EDIT_CURSOS.push({ id:"curso-"+Date.now().toString(36), title:"Nuevo curso", tagline:"", price:PRICE_STD, modality:"Online grabado", hours:1, classes:1, certificate:true, featured:false, estado:"no", desde:"", learn:[], forWho:"", prerequisites:[], includes:[], syllabus:[] }); render(); }
+function addCurso(){ syncCursos(); EDIT_CURSOS.push({ id:"curso-"+Date.now().toString(36), title:"Nuevo curso", tagline:"", price:PRICE_STD, modality:"Online grabado", hours:1, classes:1, certificate:true, featured:false, estado:"no", visible:false, desde:"", learn:[], forWho:"", prerequisites:[], includes:[], syllabus:[] }); render(); }
 function borrarCurso(i){ syncCursos(); const c=EDIT_CURSOS[i]; if(!confirm("¿Borrar el curso «"+(c.title||"")+"»? Los alumnos que lo tengan asignado dejarán de verlo.")) return; EDIT_CURSOS.splice(i,1); render(); }
 function cursosadminHTML(){
   const ea=v=>(""+(v==null?"":v)).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;");
   const S="border:1px solid var(--border);border-radius:9px;padding:9px 11px;font-size:14.5px;font-family:var(--sans);color:var(--ink);background:var(--paper);width:100%";
   const inp=(id,lab,v)=>`<label class="field" style="margin-bottom:12px"><span class="lab">${lab}</span><input id="${id}" value="${ea(v)}" style="${S}"></label>`;
-  const ta=(id,lab,v,r)=>`<label class="field" style="margin-bottom:12px"><span class="lab">${lab}</span><textarea id="${id}" rows="${r||3}" style="${S};resize:vertical">${esc((v||[]).join?v.join("\n"):v)}</textarea></label>`;
+  const ta=(id,lab,v,r)=>{ const txt=Array.isArray(v)?v.join("\n"):(v==null?"":v); return `<label class="field" style="margin-bottom:12px"><span class="lab">${lab}</span><textarea id="${id}" rows="${r||3}" style="${S};resize:vertical">${esc(txt)}</textarea></label>`; };
   const est=(sel)=>["disponible","proximo","no"].map(o=>`<option value="${o}"${(sel||"disponible")===o?" selected":""}>${o==="disponible"?"Disponible":o==="proximo"?"Próximamente (con fecha)":"No disponible"}</option>`).join("");
   const rows=EDIT_CURSOS.map((c,i)=>`<details style="border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:12px"${i===EDIT_CURSOS.length-1&&c.title==="Nuevo curso"?" open":""}>
-    <summary style="cursor:pointer;font-weight:700;color:var(--ink);display:flex;justify-content:space-between;align-items:center"><span>${esc(c.title||"(sin título)")}</span><span class="btn btn-quiet" style="padding:5px 8px;color:#B4462F" onclick="event.preventDefault();borrarCurso(${i})"><i data-lucide="trash-2" class="icon"></i></span></summary>
+    <summary style="cursor:pointer;font-weight:700;color:var(--ink)">${esc(c.title||"(sin título)")}${c.visible===false?'<span style="font-size:11px;background:var(--sub);color:#fff;border-radius:6px;padding:2px 7px;margin-left:8px;font-weight:600">Oculto</span>':''}</summary>
     <div style="margin-top:14px">
       ${inp("cc"+i+"_title","Título",c.title)}
       ${inp("cc"+i+"_tagline","Frase corta",c.tagline)}
@@ -1336,11 +1353,13 @@ function cursosadminHTML(){
         <label class="field" style="margin-bottom:12px"><span class="lab">Disponibilidad</span><select id="cc${i}_estado" style="${S}">${est(c.estado)}</select></label>
         ${inp("cc"+i+"_desde","Fecha (si es «Próximamente»)",c.desde||"")}
       </div>
+      <label class="field" style="margin-bottom:12px"><span class="lab">Mostrar en la web</span><select id="cc${i}_visible" style="${S}"><option value="si"${c.visible!==false?" selected":""}>Sí — visible para todos</option><option value="no"${c.visible===false?" selected":""}>No — solo lo ves vos (admin)</option></select></label>
       ${ta("cc"+i+"_learn","Qué vas a aprender (uno por línea)",c.learn,5)}
       ${ta("cc"+i+"_forwho","¿Para quién es?",c.forWho,2)}
       ${ta("cc"+i+"_prereq","Requisitos previos (uno por línea)",c.prerequisites,3)}
       ${ta("cc"+i+"_includes","Qué incluye (uno por línea)",c.includes,4)}
       ${ta("cc"+i+"_syllabus","Temario (uno por línea)",c.syllabus,5)}
+      <button class="btn btn-quiet" style="color:#B4462F;margin-top:6px" onclick="borrarCurso(${i})"><i data-lucide="trash-2" class="icon"></i> Borrar este curso</button>
     </div>
   </details>`).join("");
   return `<section class="wrap" style="padding:40px 24px 84px;max-width:760px">
