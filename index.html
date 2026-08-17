@@ -400,8 +400,11 @@ function applyContenido(data){
   if(Array.isArray(data.servicios)&&data.servicios.length) servicios=data.servicios;
   if(Array.isArray(data.courses)&&data.courses.length) courses=data.courses;
   if(data.lessons && typeof data.lessons==="object") LESSONS=data.lessons;
+  if(data.quizzes && typeof data.quizzes==="object") QUIZ=data.quizzes;
   if(data.pago) Object.assign(PAGO, data.pago);
 }
+function hasQuiz(cid){ const q=QUIZ[cid]; return !!(q&&q.preguntas&&q.preguntas.length); }
+function certDisponible(cid){ return (progreso[cid]||{}).aprobado || (!hasQuiz(cid) && cursoCompleto(cid)); }
 function cargarContenido(){
   db.collection("config").doc("textos").get()
     .then(s=>{ if(s.exists){ applyContenido(s.data()); render(); } })
@@ -433,7 +436,7 @@ let LESSONS = {
   ],
   /* Otros cursos: agregá acá sus clases con el ID de YouTube (yt) y el link del PDF (pdf). */
 };
-const QUIZ = {
+let QUIZ = {
   "primer-contacto-ia":{ aprobar:12, maxIntentos:3, preguntas:[
     { q:"Según el curso, ¿qué es la Inteligencia Artificial?", ops:["Programas que aprenden de ejemplos para reconocer patrones y hacer tareas","Una persona que responde muy rápido","Un buscador de páginas web"], ok:0 },
     { q:"¿La IA piensa y siente como un humano?", ops:["Sí, siente igual que nosotros","No: no tiene conciencia ni emociones","Solo se emociona a veces"], ok:1 },
@@ -833,7 +836,8 @@ function tabCursos(){
   if(cursos.length===0) return `<div class="card">Todavía no tenés cursos habilitados.</div>`;
   return cursos.map(c=>{
     const L=LESSONS[c.id]||[]; const pct=pctCurso(c.id); const ok=cursoCompleto(c.id); const ap=(progreso[c.id]||{}).aprobado;
-    const intentos=(progreso[c.id]||{}).intentos||0; const maxI=(QUIZ[c.id]&&QUIZ[c.id].maxIntentos)||3; const agotado=!ap&&intentos>=maxI;
+    const conExamen=hasQuiz(c.id); const intentos=(progreso[c.id]||{}).intentos||0; const maxI=(QUIZ[c.id]&&QUIZ[c.id].maxIntentos)||3;
+    const agotado=conExamen&&!ap&&intentos>=maxI; const certOk=certDisponible(c.id);
     if(L.length===0) return `<div class="card" style="margin-bottom:20px"><h2 style="font-size:22px;color:var(--ink);margin-bottom:8px">${esc(c.title)}</h2><p style="color:var(--sub);margin:0">Las clases de este curso estarán disponibles muy pronto.</p></div>`;
     return `<div class="card" style="margin-bottom:20px">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:14px">
@@ -849,10 +853,10 @@ function tabCursos(){
             <span class="l-txt"><strong>Clase ${i+1}</strong> — ${esc(l.titulo)}</span>
             <span class="l-meta">${st.done?"Completada":un?"Ver clase":"Bloqueada"}</span>
           </button>`; }).join("")}
-        <button class="lesson${(ok&&!agotado)||ap?"":" locked"}" ${ap?`onclick="openCert('${c.id}')"`:(ok&&!agotado?`onclick="openEval('${c.id}')"`:"disabled")} style="border-color:${ap||ok?"var(--honey)":"var(--border)"}">
-          <span class="l-ic" style="color:${ap?"var(--sage)":ok&&!agotado?"var(--honey)":"var(--sub)"}"><i data-lucide="${ap?"award":agotado?"lock":ok?"clipboard-check":"lock"}" class="icon"></i></span>
-          <span class="l-txt"><strong>Evaluación final</strong>${ap?" — aprobada":""}</span>
-          <span class="l-meta">${ap?"Ver certificado":agotado?"Intentos agotados":ok?"Rendir examen":"Se desbloquea al terminar"}</span>
+        <button class="lesson${(ok&&!agotado)||certOk?"":" locked"}" ${certOk?`onclick="openCert('${c.id}')"`:(conExamen&&ok&&!agotado?`onclick="openEval('${c.id}')"`:"disabled")} style="border-color:${certOk||ok?"var(--honey)":"var(--border)"}">
+          <span class="l-ic" style="color:${certOk?"var(--sage)":ok&&!agotado?"var(--honey)":"var(--sub)"}"><i data-lucide="${certOk?"award":agotado?"lock":ok?(conExamen?"clipboard-check":"award"):"lock"}" class="icon"></i></span>
+          <span class="l-txt"><strong>${conExamen?"Evaluación final":"Certificado"}</strong>${ap?" — aprobada":""}</span>
+          <span class="l-meta">${certOk?"Ver certificado":agotado?"Intentos agotados":ok?(conExamen?"Rendir examen":"Obtener certificado"):"Se desbloquea al terminar"}</span>
         </button>
       </div>
     </div>`;
@@ -1033,7 +1037,7 @@ function submitEval(){
 }
 
 /* ── Certificado ── */
-function openCert(cid){ if(!(progreso[cid]||{}).aprobado && !(sesion&&sesion.preview)){ alert("El certificado se habilita al aprobar el examen."); return; } state.certCid=cid; state.view="certificado"; render(); }
+function openCert(cid){ if(!certDisponible(cid) && !(sesion&&sesion.preview)){ alert("El certificado se habilita al aprobar el examen o al completar todas las clases."); return; } state.certCid=cid; state.view="certificado"; render(); }
 function certificadoHTML(){
   const c=courseById(state.certCid); const p=perfil();
   const nombre=((p&&p.nombre?p.nombre:"")+" "+(p&&p.apellido?p.apellido:"")).trim() || (sesion&&sesion.nombre) || "Alumno/a";
@@ -1048,9 +1052,9 @@ function certificadoHTML(){
         <p class="cert-body">Ha concluido satisfactoriamente el curso «${esc(c.title)}», otorgado por los ingenieros <strong>Camila Paniz</strong> y <strong>Nicolás Kwaszka</strong>, con una carga horaria total de ${c.hours} horas, cumpliendo con los contenidos y aprobando satisfactoriamente el examen final.</p>
         <div class="cert-date"><div class="cert-date-lab">Fecha de emisión</div><div class="cert-date-val">${fecha}</div></div>
         <div class="cert-sign">
-          <div class="cert-sign-col"><div class="cert-sign-line"></div><div class="cert-sign-name">Camila Paniz</div><div class="cert-sign-role">Ingeniera Industrial</div></div>
+          <div class="cert-sign-col"><div class="cert-sign-name">Camila Paniz</div><div class="cert-sign-role">Ingeniera Industrial</div></div>
           <div class="cert-seal"><i data-lucide="sparkles" class="icon"></i></div>
-          <div class="cert-sign-col"><div class="cert-sign-line"></div><div class="cert-sign-name">Nicolás Kwaszka</div><div class="cert-sign-role">Ingeniero Industrial</div></div>
+          <div class="cert-sign-col"><div class="cert-sign-name">Nicolás Kwaszka</div><div class="cert-sign-role">Ingeniero Industrial</div></div>
         </div>
       </div>
     </div>
@@ -1070,7 +1074,7 @@ function adminHTML(){
     <span class="eyebrow">Panel de administración</span>
     <h1 style="font-size:36px;color:var(--ink);margin:12px 0 6px">Alumnos</h1>
     <p class="lead" style="margin:0 0 20px">Creá el acceso de quienes ya pagaron y previsualizá cómo ven el aula.</p>
-    <div style="margin-bottom:22px;display:flex;gap:10px;flex-wrap:wrap"><button class="btn btn-quiet" onclick="verDemo()"><i data-lucide="eye" class="icon"></i> Previsualizar aula</button><button class="btn btn-quiet" onclick="state.view='contenido';render()"><i data-lucide="pencil" class="icon"></i> Editar la web</button><button class="btn btn-quiet" onclick="openClases()"><i data-lucide="video" class="icon"></i> Cargar clases y PDFs</button></div>
+    <div style="margin-bottom:22px;display:flex;gap:10px;flex-wrap:wrap"><button class="btn btn-quiet" onclick="verDemo()"><i data-lucide="eye" class="icon"></i> Previsualizar aula</button><button class="btn btn-quiet" onclick="openCursos()"><i data-lucide="book-open" class="icon"></i> Gestionar cursos</button><button class="btn btn-quiet" onclick="openClases()"><i data-lucide="video" class="icon"></i> Cargar clases y PDFs</button><button class="btn btn-quiet" onclick="openExamen()"><i data-lucide="clipboard-check" class="icon"></i> Editar examen</button><button class="btn btn-quiet" onclick="state.view='contenido';render()"><i data-lucide="pencil" class="icon"></i> Editar la web</button></div>
     <div class="card" style="margin-bottom:24px">
       <div class="fcard-head"><span class="fcard-ic"><i data-lucide="user-plus" class="icon"></i></span><h2>Habilitar un alumno</h2></div>
       <div class="fgrid">
@@ -1170,25 +1174,6 @@ function contenidoHTML(){
     ta("ct_rec_texto","Texto del aviso",CONTENIDO.recursos_texto,2));
 
   const estOpts=(sel)=>["disponible","proximo","no"].map(o=>`<option value="${o}"${(sel||"disponible")===o?" selected":""}>${o==="disponible"?"Disponible":o==="proximo"?"Próximamente (con fecha)":"No disponible"}</option>`).join("");
-  const secCursos=box("Cursos",
-    `<p style="font-size:13px;color:var(--sub);margin:-6px 0 14px">El precio va en números (sin puntos ni símbolos). Las listas: un ítem por línea.</p>`+
-    courses.map((c,i)=>`<details style="border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:12px"><summary style="cursor:pointer;font-weight:700;color:var(--ink)">${esc(c.title)}</summary>
-      <div style="margin-top:14px">
-        ${inp("cu"+i+"_title","Título",c.title)}
-        ${inp("cu"+i+"_tagline","Frase corta",c.tagline)}
-        <div class="fgrid">${inp("cu"+i+"_price","Precio (número)",c.price)}${inp("cu"+i+"_modality","Modalidad",c.modality)}</div>
-        <div class="fgrid">${inp("cu"+i+"_hours","Horas",c.hours)}${inp("cu"+i+"_classes","Clases",c.classes)}</div>
-        <div class="fgrid">
-          <label class="field" style="margin-bottom:14px"><span class="lab">Disponibilidad</span><select id="cu${i}_estado" style="${S}">${estOpts(c.estado)}</select></label>
-          ${inp("cu"+i+"_desde","Fecha (si es «Próximamente»)",c.desde||"")}
-        </div>
-        ${ta("cu"+i+"_learn","Qué vas a aprender (uno por línea)",lines(c.learn),5)}
-        ${ta("cu"+i+"_forwho","¿Para quién es?",c.forWho,2)}
-        ${ta("cu"+i+"_prereq","Requisitos previos (uno por línea)",lines(c.prerequisites),3)}
-        ${ta("cu"+i+"_includes","Qué incluye (uno por línea)",lines(c.includes),4)}
-        ${ta("cu"+i+"_syllabus","Temario (uno por línea)",lines(c.syllabus),5)}
-      </div>
-    </details>`).join(""));
 
   const secPago=box("Datos de pago y contacto",
     `<div class="fgrid">${inp("pg_alias","Alias",PAGO.alias)}${inp("pg_cvu","CVU / CBU",PAGO.cvu)}</div>`+
@@ -1203,7 +1188,7 @@ function contenidoHTML(){
     <span class="eyebrow">Panel</span>
     <h1 style="font-size:34px;color:var(--ink);margin:12px 0 6px">Editar la web</h1>
     <p class="lead" style="margin:0 0 24px">Cambiá cualquier texto, precio o dato y guardá. Se actualiza en la web al instante, sin tocar código.</p>
-    ${secInicio}${secNos}${secEmp}${secServ}${secCursos}${secEv}${secRec}${secPago}${secFoot}
+    ${secInicio}${secNos}${secEmp}${secServ}${secEv}${secRec}${secPago}${secFoot}
     <div id="ct_err" style="color:#B4462F;font-size:13px;min-height:18px"></div>
     <button id="ct_btn" class="btn btn-honey" onclick="guardarContenido()"><i data-lucide="check" class="icon"></i> Guardar todos los cambios</button>
   </section>`;
@@ -1225,15 +1210,6 @@ function guardarContenido(){
     recursos_titulo:g("ct_rec_titulo"), recursos_lead:g("ct_rec_lead"), recursos_estado:g("ct_rec_estado"), recursos_texto:g("ct_rec_texto"),
     footer_texto:g("ct_footer"),
     servicios: servicios.map((s,i)=>({ ic:s.ic, titulo:g("sv"+i+"_titulo"), lead:g("sv"+i+"_lead"), bullets:linesToArr("sv"+i+"_bullets") })),
-    courses: courses.map((c,i)=>Object.assign({}, c, {
-      title:g("cu"+i+"_title"), tagline:g("cu"+i+"_tagline"),
-      price:num("cu"+i+"_price",c.price), modality:g("cu"+i+"_modality"),
-      hours:num("cu"+i+"_hours",c.hours), classes:num("cu"+i+"_classes",c.classes),
-      estado:val("cu"+i+"_estado")||"disponible", desde:g("cu"+i+"_desde"),
-      learn:linesToArr("cu"+i+"_learn"), forWho:g("cu"+i+"_forwho"),
-      prerequisites:linesToArr("cu"+i+"_prereq"), includes:linesToArr("cu"+i+"_includes"),
-      syllabus:linesToArr("cu"+i+"_syllabus")
-    })),
     pago:{ alias:g("pg_alias"), cvu:g("pg_cvu"), titular:g("pg_titular"), whatsapp:g("pg_whatsapp").replace(/[^\d]/g,""), email:g("pg_email") }
   };
   const btn=document.getElementById("ct_btn"); if(btn){ btn.disabled=true; btn.innerHTML="Guardando…"; }
@@ -1319,6 +1295,142 @@ function guardarClases(){
     .catch(e=>{ if(btn){ btn.disabled=false; btn.innerHTML='Guardar clases'; lucide.createIcons(); } if(el) el.textContent="No se pudo guardar. Revisá tu conexión."; console.error(e); });
 }
 
+
+/* ── Gestor de cursos (agregar / borrar / editar) ── */
+let EDIT_CURSOS = [];
+function openCursos(){ EDIT_CURSOS=courses.map(c=>Object.assign({}, c, {learn:(c.learn||[]).slice(),prerequisites:(c.prerequisites||[]).slice(),includes:(c.includes||[]).slice(),syllabus:(c.syllabus||[]).slice()})); state.view="cursosadmin"; render(); }
+function syncCursos(){
+  const gv=id=>{ const e=document.getElementById(id); return e?e.value:undefined; };
+  const arr=id=>{ const e=document.getElementById(id); return e? e.value.split("\n").map(s=>s.trim()).filter(Boolean):undefined; };
+  const n=(id,def)=>{ const e=document.getElementById(id); if(!e) return def; const v=parseInt(e.value.replace(/[^\d]/g,""),10); return isNaN(v)?def:v; };
+  EDIT_CURSOS.forEach((c,i)=>{
+    if(gv("cc"+i+"_title")!==undefined) c.title=gv("cc"+i+"_title").trim();
+    if(gv("cc"+i+"_tagline")!==undefined) c.tagline=gv("cc"+i+"_tagline").trim();
+    c.price=n("cc"+i+"_price",c.price); c.hours=n("cc"+i+"_hours",c.hours); c.classes=n("cc"+i+"_classes",c.classes);
+    if(gv("cc"+i+"_modality")!==undefined) c.modality=gv("cc"+i+"_modality").trim();
+    if(gv("cc"+i+"_estado")!==undefined) c.estado=gv("cc"+i+"_estado");
+    if(gv("cc"+i+"_desde")!==undefined) c.desde=gv("cc"+i+"_desde").trim();
+    if(arr("cc"+i+"_learn")!==undefined) c.learn=arr("cc"+i+"_learn");
+    if(gv("cc"+i+"_forwho")!==undefined) c.forWho=gv("cc"+i+"_forwho").trim();
+    if(arr("cc"+i+"_prereq")!==undefined) c.prerequisites=arr("cc"+i+"_prereq");
+    if(arr("cc"+i+"_includes")!==undefined) c.includes=arr("cc"+i+"_includes");
+    if(arr("cc"+i+"_syllabus")!==undefined) c.syllabus=arr("cc"+i+"_syllabus");
+  });
+}
+function addCurso(){ syncCursos(); EDIT_CURSOS.push({ id:"curso-"+Date.now().toString(36), title:"Nuevo curso", tagline:"", price:PRICE_STD, modality:"Online grabado", hours:1, classes:1, certificate:true, featured:false, estado:"no", desde:"", learn:[], forWho:"", prerequisites:[], includes:[], syllabus:[] }); render(); }
+function borrarCurso(i){ syncCursos(); const c=EDIT_CURSOS[i]; if(!confirm("¿Borrar el curso «"+(c.title||"")+"»? Los alumnos que lo tengan asignado dejarán de verlo.")) return; EDIT_CURSOS.splice(i,1); render(); }
+function cursosadminHTML(){
+  const ea=v=>(""+(v==null?"":v)).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;");
+  const S="border:1px solid var(--border);border-radius:9px;padding:9px 11px;font-size:14.5px;font-family:var(--sans);color:var(--ink);background:var(--paper);width:100%";
+  const inp=(id,lab,v)=>`<label class="field" style="margin-bottom:12px"><span class="lab">${lab}</span><input id="${id}" value="${ea(v)}" style="${S}"></label>`;
+  const ta=(id,lab,v,r)=>`<label class="field" style="margin-bottom:12px"><span class="lab">${lab}</span><textarea id="${id}" rows="${r||3}" style="${S};resize:vertical">${esc((v||[]).join?v.join("\n"):v)}</textarea></label>`;
+  const est=(sel)=>["disponible","proximo","no"].map(o=>`<option value="${o}"${(sel||"disponible")===o?" selected":""}>${o==="disponible"?"Disponible":o==="proximo"?"Próximamente (con fecha)":"No disponible"}</option>`).join("");
+  const rows=EDIT_CURSOS.map((c,i)=>`<details style="border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:12px"${i===EDIT_CURSOS.length-1&&c.title==="Nuevo curso"?" open":""}>
+    <summary style="cursor:pointer;font-weight:700;color:var(--ink);display:flex;justify-content:space-between;align-items:center"><span>${esc(c.title||"(sin título)")}</span><span class="btn btn-quiet" style="padding:5px 8px;color:#B4462F" onclick="event.preventDefault();borrarCurso(${i})"><i data-lucide="trash-2" class="icon"></i></span></summary>
+    <div style="margin-top:14px">
+      ${inp("cc"+i+"_title","Título",c.title)}
+      ${inp("cc"+i+"_tagline","Frase corta",c.tagline)}
+      <div class="fgrid">${inp("cc"+i+"_price","Precio (número)",c.price)}${inp("cc"+i+"_modality","Modalidad",c.modality)}</div>
+      <div class="fgrid">${inp("cc"+i+"_hours","Horas",c.hours)}${inp("cc"+i+"_classes","Clases (informativo)",c.classes)}</div>
+      <div class="fgrid">
+        <label class="field" style="margin-bottom:12px"><span class="lab">Disponibilidad</span><select id="cc${i}_estado" style="${S}">${est(c.estado)}</select></label>
+        ${inp("cc"+i+"_desde","Fecha (si es «Próximamente»)",c.desde||"")}
+      </div>
+      ${ta("cc"+i+"_learn","Qué vas a aprender (uno por línea)",c.learn,5)}
+      ${ta("cc"+i+"_forwho","¿Para quién es?",c.forWho,2)}
+      ${ta("cc"+i+"_prereq","Requisitos previos (uno por línea)",c.prerequisites,3)}
+      ${ta("cc"+i+"_includes","Qué incluye (uno por línea)",c.includes,4)}
+      ${ta("cc"+i+"_syllabus","Temario (uno por línea)",c.syllabus,5)}
+    </div>
+  </details>`).join("");
+  return `<section class="wrap" style="padding:40px 24px 84px;max-width:760px">
+    <button class="back" onclick="state.view='admin';loadAlumnos()"><i data-lucide="arrow-left" class="icon"></i> Volver al panel</button>
+    <span class="eyebrow">Panel</span>
+    <h1 style="font-size:34px;color:var(--ink);margin:12px 0 6px">Gestionar cursos</h1>
+    <p class="lead" style="margin:0 0 20px">Agregá cursos nuevos, editalos o borralos. Después cargá sus clases desde «Cargar clases y PDFs» y su examen desde «Editar examen».</p>
+    ${rows}
+    <button class="btn btn-quiet" onclick="addCurso()" style="margin-bottom:20px"><i data-lucide="plus" class="icon"></i> Agregar curso nuevo</button>
+    <div id="cc_err" style="color:#B4462F;font-size:13px;min-height:18px"></div>
+    <button id="cc_btn" class="btn btn-honey" onclick="guardarCursos()"><i data-lucide="check" class="icon"></i> Guardar cursos</button>
+  </section>`;
+}
+function guardarCursos(){
+  syncCursos();
+  const el=document.getElementById("cc_err");
+  for(const c of EDIT_CURSOS){ if(!(c.title||"").trim()){ if(el) el.textContent="Hay un curso sin título."; return; } }
+  const btn=document.getElementById("cc_btn"); if(btn){ btn.disabled=true; btn.innerHTML="Guardando…"; }
+  const out=EDIT_CURSOS.map(c=>Object.assign({}, c));
+  db.collection("config").doc("textos").set({courses:out},{merge:true})
+    .then(()=>{ courses=out; state.view="admin"; loadAlumnos(); })
+    .catch(e=>{ if(btn){ btn.disabled=false; btn.innerHTML='Guardar cursos'; lucide.createIcons(); } if(el) el.textContent="No se pudo guardar. Revisá tu conexión."; console.error(e); });
+}
+
+/* ── Editor de examen (preguntas por curso) ── */
+let EDIT_QZ = {};
+function openExamen(){
+  EDIT_QZ={};
+  courses.forEach(c=>{ const q=QUIZ[c.id]; EDIT_QZ[c.id]={ aprobar:q&&q.aprobar||0, maxIntentos:q&&q.maxIntentos||3, preguntas:(q&&q.preguntas||[]).map(p=>({ q:p.q, ops:(p.ops||[]).slice(), ok:p.ok })) }; });
+  state.examCurso=courses[0]?courses[0].id:null; state.view="examen"; render();
+}
+function syncQz(){
+  const cid=state.examCurso; const Q=EDIT_QZ[cid]; if(!Q) return;
+  const ap=document.getElementById("qz_aprobar"); if(ap){ const v=parseInt(ap.value,10); Q.aprobar=isNaN(v)?0:v; }
+  Q.preguntas.forEach((p,i)=>{
+    const q=document.getElementById("qz"+i+"_q"); if(q) p.q=q.value;
+    const ops=document.getElementById("qz"+i+"_ops"); if(ops) p.ops=ops.value.split("\n").map(s=>s.trim()).filter(Boolean);
+    const ok=document.getElementById("qz"+i+"_ok"); if(ok){ const v=parseInt(ok.value,10); p.ok=(isNaN(v)?1:v)-1; }
+  });
+}
+function selectExamCurso(id){ syncQz(); state.examCurso=id; render(); }
+function addPregunta(){ syncQz(); EDIT_QZ[state.examCurso].preguntas.push({ q:"", ops:["","",""], ok:0 }); render(); }
+function removePregunta(i){ syncQz(); if(!confirm("¿Quitar esta pregunta?")) return; EDIT_QZ[state.examCurso].preguntas.splice(i,1); render(); }
+function examenHTML(){
+  const ea=v=>(""+(v==null?"":v)).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;");
+  const S="border:1px solid var(--border);border-radius:9px;padding:9px 11px;font-size:14.5px;font-family:var(--sans);color:var(--ink);background:var(--paper);width:100%";
+  const cid=state.examCurso; const Q=EDIT_QZ[cid]||{preguntas:[]};
+  const opts=courses.map(x=>`<option value="${x.id}"${x.id===cid?" selected":""}>${esc(x.title)}</option>`).join("");
+  const rows=Q.preguntas.map((p,i)=>`<div class="card" style="padding:14px 16px;margin-bottom:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><span style="font-weight:700;color:var(--ink)">Pregunta ${i+1}</span><button class="btn btn-quiet" style="padding:6px 9px;color:#B4462F" onclick="removePregunta(${i})"><i data-lucide="trash-2" class="icon"></i></button></div>
+    <label class="field" style="margin-bottom:10px"><span class="lab">Pregunta</span><input id="qz${i}_q" value="${ea(p.q)}" style="${S}"></label>
+    <label class="field" style="margin-bottom:10px"><span class="lab">Opciones (una por línea, 2 a 4)</span><textarea id="qz${i}_ops" rows="3" style="${S};resize:vertical">${esc((p.ops||[]).join("\n"))}</textarea></label>
+    <label class="field"><span class="lab">¿Cuál opción es la correcta? (número de línea: 1, 2, 3…)</span><input id="qz${i}_ok" value="${(p.ok||0)+1}" style="${S};max-width:120px"></label>
+  </div>`).join("");
+  const total=Q.preguntas.length; const apDef=Q.aprobar||Math.ceil(total*0.6);
+  return `<section class="wrap" style="padding:40px 24px 84px;max-width:720px">
+    <button class="back" onclick="state.view='admin';loadAlumnos()"><i data-lucide="arrow-left" class="icon"></i> Volver al panel</button>
+    <span class="eyebrow">Panel</span>
+    <h1 style="font-size:34px;color:var(--ink);margin:12px 0 6px">Editar examen</h1>
+    <p class="lead" style="margin:0 0 20px">Cargá las preguntas del examen de cada curso. Si un curso no tiene preguntas, el alumno recibe el certificado al terminar todas las clases (sin examen).</p>
+    <label class="field" style="margin-bottom:16px"><span class="lab">Curso</span><select onchange="selectExamCurso(this.value)" style="${S}">${opts}</select></label>
+    <label class="field" style="margin-bottom:20px"><span class="lab">Respuestas correctas para aprobar (sobre ${total})</span><input id="qz_aprobar" value="${apDef}" style="${S};max-width:140px"></label>
+    ${total?rows:`<div class="card" style="color:var(--sub);margin-bottom:12px">Este curso todavía no tiene preguntas. Agregá la primera o dejalo así (certificado sin examen).</div>`}
+    <button class="btn btn-quiet" onclick="addPregunta()" style="margin-bottom:20px"><i data-lucide="plus" class="icon"></i> Agregar pregunta</button>
+    <div id="qz_err" style="color:#B4462F;font-size:13px;min-height:18px"></div>
+    <button id="qz_btn" class="btn btn-honey" onclick="guardarExamen()"><i data-lucide="check" class="icon"></i> Guardar examen</button>
+  </section>`;
+}
+function guardarExamen(){
+  syncQz();
+  const out=Object.assign({}, QUIZ); const el=document.getElementById("qz_err");
+  Object.keys(EDIT_QZ).forEach(cid=>{
+    const Q=EDIT_QZ[cid]; const preguntas=[];
+    Q.preguntas.forEach(p=>{
+      const q=(p.q||"").trim(); const ops=(p.ops||[]).filter(o=>o&&o.trim());
+      if(!q && ops.length===0) return;
+      preguntas.push({ q:q, ops:ops, ok:Math.max(0,Math.min(ops.length-1,p.ok||0)) });
+    });
+    if(preguntas.length){ out[cid]={ aprobar:Math.max(1,Math.min(preguntas.length, Q.aprobar||Math.ceil(preguntas.length*0.6))), maxIntentos:Q.maxIntentos||3, preguntas:preguntas }; }
+    else { delete out[cid]; }
+  });
+  // validación mínima del curso actual
+  const cur=EDIT_QZ[state.examCurso];
+  for(const p of (cur?cur.preguntas:[])){ const q=(p.q||"").trim(); const ops=(p.ops||[]).filter(o=>o&&o.trim()); if(q && ops.length<2){ if(el) el.textContent="La pregunta «"+q+"» necesita al menos 2 opciones."; return; } }
+  const btn=document.getElementById("qz_btn"); if(btn){ btn.disabled=true; btn.innerHTML="Guardando…"; }
+  db.collection("config").doc("textos").set({quizzes:out},{merge:true})
+    .then(()=>{ QUIZ=out; state.view="admin"; loadAlumnos(); })
+    .catch(e=>{ if(btn){ btn.disabled=false; btn.innerHTML='Guardar examen'; lucide.createIcons(); } if(el) el.textContent="No se pudo guardar. Revisá tu conexión."; console.error(e); });
+}
+
 /* ═══════════════ RENDER ═══════════════ */
 function render(){
   const app=document.getElementById("app");
@@ -1326,6 +1438,7 @@ function render(){
   if(v==="admin" && !(sesion&&sesion.role==="admin")) v=state.view="login";
   if(v==="contenido" && !(sesion&&sesion.role==="admin")) v=state.view="login";
   if(v==="clases" && !(sesion&&sesion.role==="admin")) v=state.view="login";
+  if((v==="cursosadmin"||v==="examen") && !(sesion&&sesion.role==="admin")) v=state.view="login";
   if((v==="aula"||v==="leccion"||v==="evaluacion"||v==="onboarding"||v==="certificado") && !sesion) v=state.view="login";
   if(v==="aula" && sesion && sesion.role==="alumno" && !sesion.preview && !perfilActual) v=state.view="onboarding";
   if(v==="leccion" && !curLec) v=state.view="aula";
@@ -1344,6 +1457,8 @@ function render(){
   else if(v==="admin") app.innerHTML=adminHTML();
   else if(v==="contenido") app.innerHTML=contenidoHTML();
   else if(v==="clases") app.innerHTML=clasesHTML();
+  else if(v==="cursosadmin") app.innerHTML=cursosadminHTML();
+  else if(v==="examen") app.innerHTML=examenHTML();
   else if(v==="aula") app.innerHTML=aulaHTML();
   else if(v==="leccion") app.innerHTML=leccionHTML();
   else if(v==="evaluacion") app.innerHTML=evalHTML();
