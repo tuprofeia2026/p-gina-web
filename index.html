@@ -103,6 +103,45 @@
     transition:transform .18s ease, box-shadow .18s ease; display:flex; flex-direction:column; gap:14px; min-height:230px; box-shadow:var(--shadowSm)}
   .ccard:hover{transform:translateY(-4px); box-shadow:var(--shadow)}
   .ccard.featured{border-color:var(--honey); box-shadow:0 10px 26px rgba(156,110,46,.14)}
+  .ccard.soon{opacity:.9}
+  .tag.muted{background:var(--sub)}
+  /* Consultoría / empresas */
+  .svc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:18px}
+  .svc{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;box-shadow:var(--shadowSm);transition:transform .18s,box-shadow .18s}
+  .svc:hover{transform:translateY(-3px);box-shadow:var(--shadow)}
+  .svc-head{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+  .svc-ic{width:44px;height:44px;border-radius:12px;background:var(--sageTint);display:grid;place-items:center;flex-shrink:0}
+  .svc-ic .icon{width:22px;height:22px;color:var(--sageDeep)}
+  .svc-head h3{font-family:var(--serif);font-size:20px;color:var(--ink);margin:0;line-height:1.15}
+  .svc-lead{font-size:14.5px;color:var(--sub);margin:0 0 14px;line-height:1.5}
+  .svc-list{list-style:none;padding:0;margin:0;display:grid;gap:9px}
+  .svc-list li{display:flex;gap:9px;align-items:flex-start;font-size:14.5px;line-height:1.5;color:var(--ink)}
+  .svc-list .icon{width:16px;height:16px;color:var(--sage);flex-shrink:0;margin-top:3px}
+  .cta-emp{background:var(--honeyTint);border:1px solid var(--border);border-radius:18px;padding:28px 30px;display:flex;justify-content:space-between;align-items:center;gap:24px;flex-wrap:wrap}
+  /* Certificado */
+  .cert{background:#fff;border-radius:10px;padding:12px;box-shadow:var(--shadow)}
+  .cert-inner{border:3px double #23306a;border-radius:6px;padding:46px 42px;text-align:center;font-family:var(--serif)}
+  .cert-eyebrow{font-family:var(--sans);letter-spacing:2px;font-size:12px;font-weight:700;color:#23306a;margin-bottom:14px}
+  .cert-title{font-size:38px;line-height:1.08;color:#1b2452;margin:0 0 10px;text-transform:uppercase;letter-spacing:.5px}
+  .cert-sub{font-family:var(--sans);font-size:12px;letter-spacing:1px;text-transform:uppercase;color:#6a6e80;margin-bottom:18px}
+  .cert-name{font-size:31px;color:#1b2452;font-weight:700;border-bottom:1px solid #d8dbe8;display:inline-block;padding:0 24px 8px;margin-bottom:20px}
+  .cert-body{font-family:var(--sans);font-size:14.5px;line-height:1.7;color:#3a3f52;max-width:560px;margin:0 auto 22px}
+  .cert-date{margin-bottom:26px}
+  .cert-date-lab{font-family:var(--sans);font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#6a6e80}
+  .cert-date-val{font-size:16px;color:#1b2452;font-weight:700;font-family:var(--sans)}
+  .cert-sign{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;max-width:520px;margin:0 auto}
+  .cert-sign-col{flex:1}
+  .cert-sign-line{border-top:1px solid #23306a;margin-bottom:6px}
+  .cert-sign-name{font-family:var(--sans);font-size:14px;font-weight:700;color:#1b2452}
+  .cert-sign-role{font-family:var(--sans);font-size:12px;color:#6a6e80}
+  .cert-seal{width:44px;height:44px;border-radius:50%;background:#23306a;display:grid;place-items:center;flex-shrink:0}
+  .cert-seal .icon{color:#fff;width:20px;height:20px}
+  @media print{
+    header,#nav,footer,.no-print,.grain{display:none !important}
+    body{background:#fff !important}
+    .wrap{padding:0 !important;max-width:none !important}
+    .cert{box-shadow:none;padding:0}
+  }
   .ccard-top{display:flex; justify-content:space-between; align-items:flex-start; gap:10px}
   .price{font-family:var(--serif); font-size:23px; color:var(--ink); font-weight:600}
   .ccard h3{font-size:22px; line-height:1.2; color:var(--ink)}
@@ -282,10 +321,10 @@ function adminAuth(){ if(!secondaryApp) secondaryApp = firebase.initializeApp(fi
 
 /* ═══════════════ DATOS (editá solo esto) ═══════════════ */
 const PRICE_STD = 19600;
-const courses = [
+let courses = [
   { id:"primer-contacto-ia", title:"Mi primer contacto con la IA",
     tagline:"Perdele el miedo a la inteligencia artificial y ponela a trabajar para vos.",
-    price:PRICE_STD, modality:"Online grabado", hours:2, classes:3, certificate:true, featured:false,
+    price:PRICE_STD, modality:"Online grabado", hours:2, classes:3, certificate:true, featured:false, estado:"disponible",
     learn:["Qué es la IA y qué puede (y no puede) hacer por vos.","Escribir buenos pedidos para obtener respuestas útiles.","Usar la IA para redactar, resumir y organizar tu día.","Reconocer errores y verificar lo que te responde."],
     forWho:"Personas sin experiencia previa que quieren empezar a usar herramientas de IA en su vida diaria o su trabajo.",
     prerequisites:["Saber usar una computadora o celular a nivel básico.","Conexión a internet."],
@@ -293,7 +332,7 @@ const courses = [
     syllabus:["Módulo 1 — Qué es la IA y por qué te conviene.","Módulo 2 — Tu primera conversación paso a paso.","Módulo 3 — Pedidos que funcionan.","Módulo 4 — Aplicarlo a tu día a día."] },
   { id:"excel-1", title:"Excel Nivel 1: Básico",
     tagline:"Ordená tus datos y hacé cuentas sin miedo a la planilla.",
-    price:PRICE_STD, modality:"Online grabado", hours:3, classes:4, certificate:true, featured:false,
+    price:PRICE_STD, modality:"Online grabado", hours:3, classes:4, certificate:true, featured:false, estado:"proximo", desde:"21 de agosto",
     learn:["Moverte con confianza por una planilla.","Fórmulas esenciales: sumas, promedios y porcentajes.","Dar formato claro y profesional a tus tablas.","Crear tu primer gráfico."],
     forWho:"Quienes nunca usaron Excel o lo usan a los tumbos y quieren una base sólida.",
     prerequisites:["Tener Excel o Google Sheets instalado."],
@@ -301,7 +340,7 @@ const courses = [
     syllabus:["Módulo 1 — La planilla por dentro.","Módulo 2 — Fórmulas básicas.","Módulo 3 — Formato y presentación.","Módulo 4 — Tu primer gráfico."] },
   { id:"excel-2", title:"Excel Nivel 2: Pre-intermedio",
     tagline:"Del dato suelto al reporte que se entiende de un vistazo.",
-    price:PRICE_STD, modality:"Online grabado", hours:3, classes:4, certificate:true, featured:false,
+    price:PRICE_STD, modality:"Online grabado", hours:3, classes:4, certificate:true, featured:false, estado:"proximo", desde:"21 de agosto",
     learn:["Funciones condicionales (SI, CONTAR.SI, SUMAR.SI).","Buscar datos con BUSCARV / BUSCARX.","Tablas dinámicas para resumir información.","Limpiar y ordenar datos desordenados."],
     forWho:"Quienes ya manejan lo básico de Excel y quieren dar el salto a herramientas de análisis.",
     prerequisites:["Haber hecho el Nivel 1 o manejar fórmulas básicas."],
@@ -309,7 +348,7 @@ const courses = [
     syllabus:["Módulo 1 — Funciones condicionales.","Módulo 2 — Búsqueda de datos.","Módulo 3 — Tablas dinámicas.","Módulo 4 — Limpieza de datos."] },
   { id:"web-con-ia", title:"Diseñar páginas web con IA",
     tagline:"De la idea a una web publicada, con la IA como tu copiloto.",
-    price:85000, modality:"Online grabado", hours:3, classes:5, certificate:true, featured:true, tag:"Más completo",
+    price:85000, modality:"Online grabado", hours:3, classes:5, certificate:true, featured:true, tag:"Más completo", estado:"no",
     learn:["Planear una web simple y clara.","Generar diseño y textos con IA.","Armar las páginas sin programar de cero.","Publicarla en internet."],
     forWho:"Emprendedores y curiosos que quieren su propia web sin ser programadores.",
     prerequisites:["Manejo básico de computadora e internet."],
@@ -317,7 +356,7 @@ const courses = [
     syllabus:["Módulo 1 — Qué web necesitás.","Módulo 2 — Diseño y textos con IA.","Módulo 3 — Armado de las páginas.","Módulo 4 — Ajustes y detalles.","Módulo 5 — Publicación."] },
   { id:"power-bi-1", title:"Power BI Nivel 1",
     tagline:"Convertí tus planillas en tableros que hablan solos.",
-    price:PRICE_STD, modality:"Online grabado", hours:3, classes:5, certificate:true, featured:false,
+    price:PRICE_STD, modality:"Online grabado", hours:3, classes:5, certificate:true, featured:false, estado:"no",
     learn:["Cargar datos desde Excel y otras fuentes.","Crear visualizaciones claras.","Armar tu primer tablero interactivo.","Compartir reportes con otros."],
     forWho:"Personas que trabajan con datos y quieren mostrarlos de forma visual y profesional.",
     prerequisites:["Nociones básicas de Excel.","Power BI Desktop (gratuito) instalado."],
@@ -325,11 +364,56 @@ const courses = [
     syllabus:["Módulo 1 — Qué es Power BI.","Módulo 2 — Cargar y preparar datos.","Módulo 3 — Visualizaciones.","Módulo 4 — Tu primer tablero.","Módulo 5 — Compartir reportes."] },
 ];
 const INSTRUCTOR = "Camila Paniz y Nicolás Kwaszka";
+const CONSULTORIA_EMAIL = "cp.ingenieria.ar@gmail.com";
+/* ── Contenido editable desde el panel (se guarda en Firestore) ── */
+let servicios = [
+  {ic:"layout-grid", titulo:"Metodología 5S", lead:"Orden, limpieza y estandarización del espacio de trabajo.", bullets:["Relevamiento del espacio de trabajo.","Identificación de elementos innecesarios.","Organización de herramientas, productos e insumos.","Definición de un lugar para cada cosa y señalización de sectores.","Rutinas simples de orden y limpieza.","Auditorías 5S para sostener la mejora en el tiempo."]},
+  {ic:"package", titulo:"Gestión de stock e inventario", lead:"Control de existencias para evitar faltantes y sobrantes.", bullets:["Relevamiento del stock actual.","Organización de productos, insumos y materiales.","Clasificación por importancia y rotación.","Cálculo de puntos de pedido, stock mínimo y máximo.","Identificación de riesgos de quiebre de stock.","Seguimiento y plan de mejora."]},
+  {ic:"trending-up", titulo:"Mejora continua", lead:"Procesos más ágiles, sin desperdicios ni retrabajos.", bullets:["Relevamiento de procesos actuales.","Análisis de tiempos, secuencia y recursos utilizados.","Detección de esperas, retrabajos y tareas que no agregan valor.","Oportunidades de mejora en lo administrativo, operativo y productivo.","Acciones concretas priorizadas por impacto y facilidad.","Acompañamiento en la puesta en marcha y el seguimiento."]},
+  {ic:"file-text", titulo:"Manuales y procedimientos", lead:"Documentación clara de cómo se trabaja en tu organización.", bullets:["Manuales, procedimientos e instructivos a medida.","Relevamiento de tareas, controles y ensayos reales.","Revisión de normas y criterios técnicos aplicables.","Redacción clara para tareas operativas, administrativas y técnicas.","Procedimientos de ensayo, control y verificación.","Definición de pasos, responsables, registros y puntos de control."]},
+  {ic:"calculator", titulo:"Análisis de costos", lead:"Saber cuánto cuesta cada cosa para decidir mejor.", bullets:["Relevamiento de costos de productos, servicios y procesos.","Orden de materiales, mano de obra, insumos y gastos.","Cálculo de costos directos, indirectos y unitarios.","Revisión de consumos, desperdicios y uso de recursos.","Planillas simples para controlar y actualizar costos.","Análisis de márgenes, precios de venta y oportunidades."]},
+  {ic:"users", titulo:"Capacitaciones y charlas", lead:"Formación a medida sobre los temas que tu empresa necesita.", bullets:["Definimos el tema según lo que tu equipo necesita fortalecer.","Capacitaciones en ingeniería industrial: procesos, calidad, costos, stock y mejora continua.","Introducción y uso de inteligencia artificial aplicada al trabajo.","Contenido adaptado al rubro y al nivel del equipo.","Ejemplos y ejercicios prácticos sobre la propia operación.","Modalidad presencial u online, según te convenga."]},
+];
+let CONTENIDO = {
+  hero_titulo:"Dejá de mirar la tecnología de afuera.",
+  hero_acento:"Ponela a trabajar para vos.",
+  hero_sub:"Herramientas concretas, explicadas para que las uses hoy — no la semana que viene.",
+  path1_titulo:"Para vos", path1_texto:"Cursos online de inteligencia artificial, Excel y datos. A tu ritmo, con ejercicios y certificado.",
+  path2_titulo:"Para tu empresa", path2_texto:"Consultoría en procesos: 5S, gestión de stock, costos, mejora continua y capacitaciones.",
+  cursos_eyebrow:"Nuestros cursos", cursos_titulo:"Elegí por dónde empezar",
+  nosotros_intro:"Somos Camila Paniz y Nicolás Kwaszka, ingenieros industriales. Trabajamos con una idea simple: la tecnología rinde cuando se explica bien, y casi todo proceso se puede hacer más claro y más eficiente.",
+  nosotros_cuerpo:"A las personas les enseñamos con cursos directos y aplicados: cada concepto viene con un ejemplo y algo para poner en práctica. La meta no es que sepas la teoría, sino que salgas sabiendo hacer.\nA las empresas las acompañamos con consultoría en ingeniería industrial: relevamos cómo trabajan hoy, detectamos qué se puede mejorar y proponemos acciones concretas — y estamos ahí cuando toca implementarlas.",
+  nos_n1:"Camila Paniz", nos_r1:"Ingeniera Industrial · Co-fundadora",
+  nos_n2:"Nicolás Kwaszka", nos_r2:"Ingeniero Industrial · Co-fundador",
+  empresas_eyebrow:"Consultoría para empresas", empresas_titulo:"Ingeniería industrial aplicada a tu operación",
+  empresas_lead:"Como ingenieros industriales, acompañamos a organizaciones que quieren ordenar, mejorar y crecer. Diagnosticamos, proponemos acciones concretas y te ayudamos a implementarlas — siempre adaptadas a tu realidad.",
+  empresas_cta_titulo:"¿Hablamos de tu empresa?", empresas_cta_texto:"Contanos qué necesitás y armamos una propuesta a medida, sin compromiso.",
+  eventos_titulo:"Próximamente", eventos_texto:"Todavía no hay eventos publicados. Volvé pronto para no perderte los próximos.",
+  recursos_titulo:"Recursos", recursos_lead:"Material descargable para acompañar tu aprendizaje.",
+  recursos_estado:"Próximamente", recursos_texto:"Estamos preparando guías y plantillas para descargar gratis. Volvé pronto.",
+  footer_texto:"Camila Paniz y Nicolás Kwaszka",
+};
+function applyContenido(data){
+  if(!data) return;
+  const t={}; Object.keys(data).forEach(k=>{ if(k!=="servicios"&&k!=="courses"&&k!=="pago") t[k]=data[k]; });
+  CONTENIDO=Object.assign({}, CONTENIDO, t);
+  if(Array.isArray(data.servicios)&&data.servicios.length) servicios=data.servicios;
+  if(Array.isArray(data.courses)&&data.courses.length) courses=data.courses;
+  if(data.lessons && typeof data.lessons==="object") LESSONS=data.lessons;
+  if(data.pago) Object.assign(PAGO, data.pago);
+}
+function cargarContenido(){
+  db.collection("config").doc("textos").get()
+    .then(s=>{ if(s.exists){ applyContenido(s.data()); render(); } })
+    .catch(e=>console.error("contenido",e));
+}
+function cursoDisponible(c){ return (c.estado||"disponible")==="disponible"; }
+function cursoBadge(c){ const e=c.estado||"disponible"; if(e==="disponible") return null; if(e==="proximo") return "Disponible a partir del "+(c.desde||"pronto"); return "No disponible"; }
 /* ► DATOS DE PAGO — reemplazá por los tuyos reales */
 const PAGO = {
-  alias:   "TU.PROFE.IA",            // tu alias
-  cvu:     "0000003100000000000000", // tu CVU/CBU
-  titular: "Camila Paniz",           // titular de la cuenta
+  alias:   "camila.paniz",
+  cvu:     "0000003100023590900011",
+  titular: "Camila Nair Paniz",
   whatsapp:"543755417757",           // WhatsApp, formato internacional sin +
   email:   "tuprofeia2026@gmail.com", // correo de contacto
 };
@@ -341,7 +425,7 @@ const esc = s => (""+s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,
 const UMBRAL_COMPLETADO = 0.9;   // 90% mirado = clase completa
 
 /* Lecciones por curso: cada clase con su ID de YouTube (yt) y el link del PDF (pdf). */
-const LESSONS = {
+let LESSONS = {
   "primer-contacto-ia":[
     { id:"l1", titulo:"Introducción a la IA", yt:"a6ErjVtWlis", pdf:"https://drive.google.com/file/d/1UeddrkWHMKFE7stCn9VUKPEkayc29wfZ/view" },
     { id:"l2", titulo:"Mi primer contacto con la IA", yt:"bkeg5ThIHX4", pdf:"https://drive.google.com/file/d/1uvRHikRWb9tXBYmEnGshSVmrpBkN1Qcx/view" },
@@ -350,10 +434,27 @@ const LESSONS = {
   /* Otros cursos: agregá acá sus clases con el ID de YouTube (yt) y el link del PDF (pdf). */
 };
 const QUIZ = {
-  "primer-contacto-ia":{ aprobar:2, preguntas:[
-    { q:"¿La IA puede equivocarse o inventar datos?", ops:["No, nunca","Sí, siempre conviene verificar","Solo si le pagás"], ok:1 },
-    { q:"Para obtener buenas respuestas conviene…", ops:["Escribir pedidos claros y con contexto","Escribir lo más corto posible","No dar ningún detalle"], ok:0 },
-    { q:"La IA es, sobre todo, una herramienta para…", ops:["Reemplazar tu criterio","Ayudarte a pensar y producir","Nada útil"], ok:1 },
+  "primer-contacto-ia":{ aprobar:12, maxIntentos:3, preguntas:[
+    { q:"Según el curso, ¿qué es la Inteligencia Artificial?", ops:["Programas que aprenden de ejemplos para reconocer patrones y hacer tareas","Una persona que responde muy rápido","Un buscador de páginas web"], ok:0 },
+    { q:"¿La IA piensa y siente como un humano?", ops:["Sí, siente igual que nosotros","No: no tiene conciencia ni emociones","Solo se emociona a veces"], ok:1 },
+    { q:"Muchos sistemas de IA se basan en…", ops:["Redes neuronales artificiales","Hojas de cálculo","Líneas de teléfono"], ok:0 },
+    { q:"¿Quién acuñó el término «Inteligencia Artificial» en la Conferencia de Dartmouth (1956)?", ops:["Arthur Scherbius","John McCarthy","Steve Jobs"], ok:1 },
+    { q:"¿Cuál se considera el primer chatbot de la historia (1966)?", ops:["ChatGPT","Siri","ELIZA"], ok:2 },
+    { q:"¿En qué año se lanzó ChatGPT y acercó la IA a millones de personas?", ops:["2010","2022","2025"], ok:1 },
+    { q:"Un ejemplo cotidiano de IA que menciona el curso es…", ops:["El algoritmo de Instagram que elige qué te muestra","Una calculadora de bolsillo","Un reloj de pared"], ok:0 },
+    { q:"Sobre la salud mental, el curso recomienda…", ops:["Usar la IA como si fuera tu psicólogo","No usar la IA como reemplazo de un profesional","Contarle todos tus problemas personales"], ok:1 },
+    { q:"Usar una IA conversacional es, básicamente…", ops:["Chatear: vos escribís y te responde","Programar en un lenguaje difícil","Hacer una llamada telefónica"], ok:0 },
+    { q:"¿En qué se diferencia de buscar en Google?", ops:["Es exactamente igual que Google","Le hablás en lenguaje natural y te responde directo","Solo sirve para ver mapas"], ok:1 },
+    { q:"La regla simple para el primer día es…", ops:["Un tema, un chat","Todo en una sola conversación eterna","No abrir nunca un chat nuevo"], ok:0 },
+    { q:"Dentro de una misma conversación, la IA…", ops:["Olvida todo en cada mensaje","Recuerda el contexto de esa conversación (el «hilo»)","Borra tus datos automáticamente"], ok:1 },
+    { q:"Cuando se dice que la IA «alucina» significa que…", ops:["Se apaga sola","Inventa datos que parecen verdaderos pero no lo son","Funciona más rápido"], ok:1 },
+    { q:"Sobre la privacidad, el curso recomienda…", ops:["Compartir todos tus datos sin problema","No compartir datos sensibles (contraseñas, bancarios, DNI)","Publicar tus contraseñas en el chat"], ok:1 },
+    { q:"Para empezar y para todo el curso, la versión que alcanza es…", ops:["La versión gratuita","Únicamente la versión paga","Ninguna de las dos"], ok:0 },
+    { q:"¿Qué es un «prompt»?", ops:["La instrucción o mensaje que le escribís a la IA","Un error de la aplicación","El nombre de un modelo de pago"], ok:0 },
+    { q:"¿Cuáles son las cuatro partes de un buen prompt?", ops:["Rol, Tarea, Formato y Estilo","Título, Fecha, Firma y Sello","Entrada, Proceso, Salida y Fin"], ok:0 },
+    { q:"Una instrucción vaga a la IA suele producir…", ops:["Una respuesta genérica","Siempre la mejor respuesta posible","Un error que rompe la app"], ok:0 },
+    { q:"Para obtener una mejor imagen conviene…", ops:["Pedir lo más corto posible","Dar más detalle: sujeto, escenario, iluminación y estilo","No describir nada y esperar"], ok:1 },
+    { q:"Una señal de que una imagen fue creada por IA es…", ops:["Manos o dedos raros y texto deformado","Que sea a color","Que aparezca un animal"], ok:0 },
   ]},
 };
 
@@ -384,54 +485,39 @@ function homeHTML(){
   return `
   <section class="wrap">
     <div class="hero-solo">
-      <h1>Formación y consultoría en <span class="accent">tecnología aplicada</span>.</h1>
-      <p>Cursos prácticos de inteligencia artificial, Excel y datos para dar tus primeros pasos — y capacitación y consultoría en ingeniería industrial para empresas que quieren mejorar sus procesos.</p>
+      <h1>${esc(CONTENIDO.hero_titulo)} <span class="accent">${esc(CONTENIDO.hero_acento)}</span></h1>
+      <p>${esc(CONTENIDO.hero_sub)}</p>
       <div style="display:flex;gap:12px;flex-wrap:wrap">
         <button class="btn btn-primary" onclick="document.getElementById('cursos').scrollIntoView({behavior:'smooth'})">Ver cursos <i data-lucide="chevron-right" class="icon"></i></button>
-        <button class="btn btn-quiet" onclick="go('empresas')">Soluciones para empresas</button>
+        <button class="btn btn-quiet" onclick="go('empresas')">Consultoría para empresas</button>
       </div>
-      <div class="chiprow">${chip("monitor","Online grabado")}${chip("award","Con certificado","honey")}${chip("briefcase","Consultoría a medida")}</div>
     </div>
     <div class="paths">
       <button class="pathcard" onclick="document.getElementById('cursos').scrollIntoView({behavior:'smooth'})">
         <span class="path-ic"><i data-lucide="graduation-cap" class="icon"></i></span>
-        <h3>Para vos</h3>
-        <p>Cursos online, a tu ritmo y con certificado. Ideales para empezar en IA, Excel y análisis de datos.</p>
+        <h3>${esc(CONTENIDO.path1_titulo)}</h3>
+        <p>${esc(CONTENIDO.path1_texto)}</p>
         <span class="more">Ver cursos <i data-lucide="chevron-right" class="icon"></i></span>
       </button>
       <button class="pathcard" onclick="go('empresas')">
         <span class="path-ic honey"><i data-lucide="briefcase" class="icon"></i></span>
-        <h3>Para tu empresa</h3>
-        <p>Capacitaciones a medida y consultoría en ingeniería industrial para optimizar procesos y decisiones.</p>
-        <span class="more">Conocer más <i data-lucide="chevron-right" class="icon"></i></span>
-      </button>
-    </div>
-  </section>
-      <button class="pathcard" onclick="document.getElementById('cursos').scrollIntoView({behavior:'smooth'})">
-        <span class="path-ic"><i data-lucide="graduation-cap" class="icon"></i></span>
-        <h3>Para vos</h3>
-        <p>Cursos online, a tu ritmo y con certificado. Ideales para empezar en IA, Excel y análisis de datos.</p>
-        <span class="more">Ver cursos <i data-lucide="chevron-right" class="icon"></i></span>
-      </button>
-      <button class="pathcard" onclick="go('empresas')">
-        <span class="path-ic honey"><i data-lucide="briefcase" class="icon"></i></span>
-        <h3>Para tu empresa</h3>
-        <p>Capacitaciones a medida y consultoría en ingeniería industrial para optimizar procesos y decisiones.</p>
+        <h3>${esc(CONTENIDO.path2_titulo)}</h3>
+        <p>${esc(CONTENIDO.path2_texto)}</p>
         <span class="more">Conocer más <i data-lucide="chevron-right" class="icon"></i></span>
       </button>
     </div>
   </section>
   <section class="wrap" id="cursos" style="padding:56px 24px 84px">
-    <div class="sec-head"><span class="eyebrow">Nuestros cursos</span><h2>Elegí por dónde empezar</h2></div>
+    <div class="sec-head"><span class="eyebrow">${esc(CONTENIDO.cursos_eyebrow)}</span><h2>${esc(CONTENIDO.cursos_titulo)}</h2></div>
     <div class="grid-courses">
-      ${courses.map(c=>`
-        <button class="ccard${c.featured?' featured':''}" onclick="openCourse('${c.id}')">
-          ${c.featured&&c.tag?`<span class="tag">${c.tag}</span>`:""}
+      ${courses.map(c=>{ const badge=cursoBadge(c); const disp=cursoDisponible(c);
+        return `<button class="ccard${c.featured?' featured':''}${disp?'':' soon'}" onclick="openCourse('${c.id}')">
+          ${badge?`<span class="tag${c.estado==='no'?' muted':''}">${badge}</span>`:(c.featured&&c.tag?`<span class="tag">${c.tag}</span>`:"")}
           <div class="ccard-top">${chip("monitor",c.modality)}<span class="price">${ars(c.price)}</span></div>
           <h3>${esc(c.title)}</h3>
           <p>${esc(c.tagline)}</p>
-          <span class="more">Ver curso <i data-lucide="chevron-right" class="icon"></i></span>
-        </button>`).join("")}
+          <span class="more">${disp?"Ver curso":"Ver detalle"} <i data-lucide="chevron-right" class="icon"></i></span>
+        </button>`; }).join("")}
     </div>
   </section>`;
 }
@@ -460,7 +546,9 @@ function detailHTML(c){
         <div class="card">
           <div class="lbl">Precio del curso</div>
           <div class="big">${ars(c.price)}</div>
-          <button class="btn btn-honey btn-full" onclick="state.view='inscription';render()">Inscribirme ahora</button>
+          ${cursoDisponible(c)
+            ? `<button class="btn btn-honey btn-full" onclick="state.view='inscription';render()">Inscribirme ahora</button>`
+            : `<button class="btn btn-honey btn-full" disabled style="opacity:.55;cursor:not-allowed">${c.estado==='proximo'?('Disponible a partir del '+(c.desde||'pronto')):'No disponible por ahora'}</button>${c.estado==='proximo'?'<p class="fineprint" style="margin-top:10px">Este curso abre inscripciones muy pronto. ¡Guardá la fecha!</p>':''}`}
           <div class="feat">
             <div><i data-lucide="monitor" class="icon"></i> ${esc(c.modality)}</div>
             <div><i data-lucide="clock" class="icon"></i> ${c.hours} horas de contenido</div>
@@ -488,8 +576,8 @@ function inscriptionHTML(c){
         <div class="card">
           <div class="fcard-head"><span class="fcard-ic"><i data-lucide="user" class="icon"></i></span><h2>Datos personales</h2></div>
           <div class="fgrid">
-            ${field("Nombre *","user","f_nombre","text","Ej.: Camila")}
-            ${field("Apellido *","user","f_apellido","text","Ej.: Paniz")}
+            ${field("Nombre *","user","f_nombre","text","Ej.: María")}
+            ${field("Apellido *","user","f_apellido","text","Ej.: González")}
             ${field("Email *","mail","f_email","email","vos@ejemplo.com","Importante: revisá que esté bien escrito. Te enviaremos todas las comunicaciones a este correo.")}
             ${field("Ciudad de residencia *","map-pin","f_ciudad","text","Oberá, Misiones")}
           </div>
@@ -561,29 +649,51 @@ function pageShell(eyebrow,title,lead,inner,eclass){
     ${inner}</section>`;
 }
 function empresasHTML(){
-  const items=[["graduation-cap","Capacitaciones a medida","Formamos a tu equipo en IA, Excel y análisis de datos, adaptado a tu operación."],["briefcase","Consultoría en Ingeniería Industrial","Optimización de procesos, productividad y toma de decisiones basada en datos."]];
-  return pageShell("Para empresas","Capacitación y consultoría","Acompañamos a equipos y organizaciones que quieren incorporar tecnología y mejorar sus procesos, de la mano de dos ingenieros industriales.",
-    `<div class="two">${items.map(i=>`<div class="card"><span style="width:46px;height:46px;border-radius:13px;background:var(--honeyTint);display:grid;place-items:center;margin-bottom:14px"><i data-lucide="${i[0]}" class="icon" style="width:21px;height:21px;color:var(--honey)"></i></span><h3 style="font-size:20px;color:var(--ink);margin-bottom:8px">${i[1]}</h3><p style="font-size:15px;line-height:1.55;color:var(--sub);margin:0">${i[2]}</p></div>`).join("")}</div>
-    <p class="muted-note">Contenido de ejemplo — reemplazá con tus servicios y casos reales.</p>`);
+  const card=s=>`<div class="svc">
+    <div class="svc-head"><span class="svc-ic"><i data-lucide="${s.ic||'check'}" class="icon"></i></span><h3>${esc(s.titulo)}</h3></div>
+    <p class="svc-lead">${esc(s.lead)}</p>
+    <ul class="svc-list">${(s.bullets||[]).map(b=>`<li><i data-lucide="check" class="icon"></i><span>${esc(b)}</span></li>`).join("")}</ul>
+  </div>`;
+  const waEmp="https://wa.me/"+PAGO.whatsapp+"?text="+encodeURIComponent("Hola! Quiero consultar por los servicios de consultoría para mi empresa.");
+  return `<section class="wrap" style="padding:64px 24px 40px">
+    <div style="max-width:720px">
+      <span class="eyebrow">${esc(CONTENIDO.empresas_eyebrow)}</span>
+      <h1 style="font-size:44px;line-height:1.1;color:var(--ink);margin:12px 0 14px">${esc(CONTENIDO.empresas_titulo)}</h1>
+      <p class="lead" style="margin:0">${esc(CONTENIDO.empresas_lead)}</p>
+    </div>
+  </section>
+  <section class="wrap" style="padding:16px 24px 40px">
+    <div class="svc-grid">${servicios.map(card).join("")}</div>
+  </section>
+  <section class="wrap" style="padding:8px 24px 84px">
+    <div class="cta-emp">
+      <div>
+        <h2 style="font-family:var(--serif);font-size:26px;color:var(--ink);margin:0 0 6px">${esc(CONTENIDO.empresas_cta_titulo)}</h2>
+        <p style="font-size:15.5px;color:var(--sub);margin:0">${esc(CONTENIDO.empresas_cta_texto)}</p>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <a class="btn btn-primary" href="${waEmp}" target="_blank" rel="noopener" style="text-decoration:none"><i data-lucide="message-circle" class="icon"></i> Escribinos por WhatsApp</a>
+        <a class="btn btn-quiet" href="mailto:${CONSULTORIA_EMAIL}?subject=Consulta%20de%20empresa" style="text-decoration:none"><i data-lucide="mail" class="icon"></i> ${CONSULTORIA_EMAIL}</a>
+      </div>
+    </div>
+  </section>`;
 }
 function eventosHTML(){
   return pageShell("Encuentros online","Eventos","Cada tanto organizamos encuentros online en vivo: charlas, demos y sesiones de preguntas. Acá vas a ver los próximos.",
-    `<div class="card" style="display:flex;gap:16px;align-items:center"><span style="width:48px;height:48px;border-radius:13px;background:var(--honeyTint);display:grid;place-items:center;flex-shrink:0"><i data-lucide="calendar-days" class="icon" style="width:22px;height:22px;color:var(--honey)"></i></span><div><div style="font-size:16px;color:var(--ink);font-weight:600">Próximamente</div><div style="font-size:14.5px;color:var(--sub)">Todavía no hay eventos publicados. Cargalos acá cuando tengas fecha.</div></div></div>`);
+    `<div class="card" style="display:flex;gap:16px;align-items:center"><span style="width:48px;height:48px;border-radius:13px;background:var(--honeyTint);display:grid;place-items:center;flex-shrink:0"><i data-lucide="calendar-days" class="icon" style="width:22px;height:22px;color:var(--honey)"></i></span><div><div style="font-size:16px;color:var(--ink);font-weight:600">${esc(CONTENIDO.eventos_titulo)}</div><div style="font-size:14.5px;color:var(--sub)">${esc(CONTENIDO.eventos_texto)}</div></div></div>`);
 }
 function recursosHTML(){
-  const recs=["Guía de pedidos para IA (PDF)","Atajos de teclado de Excel (PDF)","Plantilla de tablero Power BI"];
-  return pageShell("Material gratuito","Recursos",'Material descargable para acompañar tu aprendizaje. <strong style="color:var(--honeyDeep)">Todo gratis.</strong>',
-    `<div style="display:grid;gap:12px">${recs.map(r=>`<div class="card" style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px"><span style="display:flex;gap:12px;align-items:center;font-size:15.5px;color:var(--ink)"><i data-lucide="file-text" class="icon" style="width:19px;height:19px;color:var(--honey)"></i> ${r}</span><span style="font-size:14px;color:var(--sage);font-weight:600">Descargar</span></div>`).join("")}</div>
-    <p class="muted-note">Contenido de ejemplo — reemplazá con tus PDFs reales (idealmente enlazados a Drive).</p>`);
+  return pageShell("Material gratuito",esc(CONTENIDO.recursos_titulo),esc(CONTENIDO.recursos_lead),
+    `<div class="card" style="display:flex;gap:16px;align-items:center"><span style="width:48px;height:48px;border-radius:13px;background:var(--honeyTint);display:grid;place-items:center;flex-shrink:0"><i data-lucide="folder-open" class="icon" style="width:22px;height:22px;color:var(--honey)"></i></span><div><div style="font-size:16px;color:var(--ink);font-weight:600">${esc(CONTENIDO.recursos_estado)}</div><div style="font-size:14.5px;color:var(--sub)">${esc(CONTENIDO.recursos_texto)}</div></div></div>`);
 }
 function nosotrosHTML(){
   const team=[
-    ["Camila Paniz","Ingeniera Industrial · Co-fundadora"],
-    ["Nicolás Kwaszka","Ingeniero Industrial · Co-fundador"]
+    [CONTENIDO.nos_n1,CONTENIDO.nos_r1],
+    [CONTENIDO.nos_n2,CONTENIDO.nos_r2]
   ];
-  return pageShell("Quiénes somos","Nosotros","Tu Profe IA nació de la mano de Camila Paniz y Nicolás Kwaszka, dos ingenieros industriales que creen que la tecnología tiene que ser accesible para todos.",
-    `<div class="two" style="margin-bottom:32px">${team.map(t=>`<div class="card" style="padding:22px 24px"><div style="font-size:19px;color:var(--ink);font-weight:600;font-family:var(--serif)">${t[0]}</div><div style="font-size:13.5px;color:var(--honeyDeep);font-weight:600;margin-top:4px">${t[1]}</div></div>`).join("")}</div>
-    <div class="card" style="background:var(--honeyTint);border-color:var(--border)"><p style="font-size:16px;line-height:1.65;color:var(--ink);margin:0">Enseñamos con paciencia y ejemplos concretos, para que cualquiera —sin importar su punto de partida— pueda usar la inteligencia artificial y las herramientas digitales con confianza.</p></div>`,"sage");
+  return pageShell("Quiénes somos","Nosotros",esc(CONTENIDO.nosotros_intro),
+    `<div class="two" style="margin-bottom:32px">${team.map(t=>`<div class="card" style="padding:22px 24px"><div style="font-size:19px;color:var(--ink);font-weight:600;font-family:var(--serif)">${esc(t[0])}</div><div style="font-size:13.5px;color:var(--honeyDeep);font-weight:600;margin-top:4px">${esc(t[1])}</div></div>`).join("")}</div>
+    <div class="card" style="background:var(--honeyTint);border-color:var(--border)">${(CONTENIDO.nosotros_cuerpo||"").split("\n").filter(x=>x.trim()).map((par,i,a)=>`<p style="font-size:16px;line-height:1.65;color:var(--ink);margin:0 0 ${i<a.length-1?"12px":"0"}">${esc(par)}</p>`).join("")}</div>`,"sage");
 }
 
 function toggleSit(s){ state.sit = state.sit.includes(s) ? state.sit.filter(x=>x!==s) : [...state.sit,s]; render(); }
@@ -677,8 +787,8 @@ function onboardingHTML(){
         <span style="font-size:12.5px;color:var(--sub)">Foto de perfil (opcional)</span>
       </div>
       <div class="fgrid">
-        <label class="field"><span class="lab">Nombre *</span><span class="box"><i data-lucide="user" class="icon"></i><input id="ob_nombre" placeholder="Camila"></span></label>
-        <label class="field"><span class="lab">Apellido *</span><span class="box"><i data-lucide="user" class="icon"></i><input id="ob_apellido" placeholder="Paniz"></span></label>
+        <label class="field"><span class="lab">Nombre *</span><span class="box"><i data-lucide="user" class="icon"></i><input id="ob_nombre" placeholder="Ej.: María"></span></label>
+        <label class="field"><span class="lab">Apellido *</span><span class="box"><i data-lucide="user" class="icon"></i><input id="ob_apellido" placeholder="Ej.: González"></span></label>
         <label class="field"><span class="lab">DNI *</span><span class="box"><i data-lucide="id-card" class="icon"></i><input id="ob_dni" placeholder="12345678"></span></label>
         <label class="field"><span class="lab">Email *</span><span class="box"><i data-lucide="mail" class="icon"></i><input id="ob_email" type="email" placeholder="vos@correo.com"></span></label>
       </div>
@@ -723,6 +833,7 @@ function tabCursos(){
   if(cursos.length===0) return `<div class="card">Todavía no tenés cursos habilitados.</div>`;
   return cursos.map(c=>{
     const L=LESSONS[c.id]||[]; const pct=pctCurso(c.id); const ok=cursoCompleto(c.id); const ap=(progreso[c.id]||{}).aprobado;
+    const intentos=(progreso[c.id]||{}).intentos||0; const maxI=(QUIZ[c.id]&&QUIZ[c.id].maxIntentos)||3; const agotado=!ap&&intentos>=maxI;
     if(L.length===0) return `<div class="card" style="margin-bottom:20px"><h2 style="font-size:22px;color:var(--ink);margin-bottom:8px">${esc(c.title)}</h2><p style="color:var(--sub);margin:0">Las clases de este curso estarán disponibles muy pronto.</p></div>`;
     return `<div class="card" style="margin-bottom:20px">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:14px">
@@ -738,10 +849,10 @@ function tabCursos(){
             <span class="l-txt"><strong>Clase ${i+1}</strong> — ${esc(l.titulo)}</span>
             <span class="l-meta">${st.done?"Completada":un?"Ver clase":"Bloqueada"}</span>
           </button>`; }).join("")}
-        <button class="lesson${ok?"":" locked"}" ${ok?`onclick="openEval('${c.id}')"`:"disabled"} style="border-color:${ok?"var(--honey)":"var(--border)"}">
-          <span class="l-ic" style="color:${ap?"var(--sage)":ok?"var(--honey)":"var(--sub)"}"><i data-lucide="${ap?"award":ok?"clipboard-check":"lock"}" class="icon"></i></span>
+        <button class="lesson${(ok&&!agotado)||ap?"":" locked"}" ${ap?`onclick="openCert('${c.id}')"`:(ok&&!agotado?`onclick="openEval('${c.id}')"`:"disabled")} style="border-color:${ap||ok?"var(--honey)":"var(--border)"}">
+          <span class="l-ic" style="color:${ap?"var(--sage)":ok&&!agotado?"var(--honey)":"var(--sub)"}"><i data-lucide="${ap?"award":agotado?"lock":ok?"clipboard-check":"lock"}" class="icon"></i></span>
           <span class="l-txt"><strong>Evaluación final</strong>${ap?" — aprobada":""}</span>
-          <span class="l-meta">${ap?"Certificado listo":ok?"Disponible":"Se desbloquea al terminar"}</span>
+          <span class="l-meta">${ap?"Ver certificado":agotado?"Intentos agotados":ok?"Rendir examen":"Se desbloquea al terminar"}</span>
         </button>
       </div>
     </div>`;
@@ -861,36 +972,94 @@ function ytTick(){
 }
 function closeLeccion(){ if(ytTimer){ clearInterval(ytTimer); ytTimer=null; } if(ytPlayer&&ytPlayer.destroy){ try{ytPlayer.destroy();}catch(e){} ytPlayer=null; } saveProg(); curLec=null; state.view="aula"; render(); }
 
-/* ── Evaluación ── */
-function openEval(cid){ evalState={ cid, result:null }; state.view="evaluacion"; render(); }
+/* ── Evaluación (20 preguntas, 3 intentos, revisión de respuestas) ── */
+function intentosCurso(cid){ return (progreso[cid]||{}).intentos||0; }
+function openEval(cid){
+  const Q=QUIZ[cid]; const max=(Q&&Q.maxIntentos)||3;
+  if(Q && !(progreso[cid]||{}).aprobado && intentosCurso(cid)>=max){ alert("Ya usaste tus "+max+" intentos. Escribinos para reactivar el examen."); return; }
+  evalState={ cid, result:null, review:false }; state.view="evaluacion"; render();
+}
 function evalHTML(){
-  const Q=QUIZ[evalState.cid]; const c=courseById(evalState.cid);
+  const Q=QUIZ[evalState.cid]; const c=courseById(evalState.cid); const max=(Q&&Q.maxIntentos)||3;
   if(!Q) return `<section class="narrow" style="padding:64px 24px"><button class="back" onclick="state.view='aula';render()"><i data-lucide="arrow-left" class="icon"></i> Volver</button><p>La evaluación de este curso estará disponible pronto.</p></section>`;
-  if(evalState.result){ const pass=evalState.result.score>=Q.aprobar;
-    return `<section class="narrow" style="padding:64px 24px 90px;text-align:center;max-width:520px">
+
+  if(evalState.result){
+    const r=evalState.result; const pass=r.score>=Q.aprobar; const intentos=intentosCurso(evalState.cid); const quedan=Math.max(0,max-intentos);
+    const review = evalState.review ? `<div style="text-align:left;margin-top:24px">${Q.preguntas.map((p,qi)=>`<div class="card" style="margin-bottom:12px">
+        <div style="font-weight:700;color:var(--ink);margin-bottom:10px">${qi+1}. ${esc(p.q)}</div>
+        <div style="display:grid;gap:6px">${p.ops.map((o,oi)=>{ const esOk=oi===p.ok; const esMia=oi===r.answers[qi];
+          const col=esOk?"var(--sageDeep)":(esMia&&!esOk?"#B4462F":"var(--sub)"); const ic=esOk?"check":(esMia&&!esOk?"x":"minus");
+          return `<div style="display:flex;gap:8px;align-items:center;font-size:14.5px;color:${col}"><i data-lucide="${ic}" class="icon" style="width:16px;height:16px;flex-shrink:0"></i><span${esOk?' style="font-weight:600"':''}>${esc(o)}${esOk?" · correcta":(esMia?" · tu respuesta":"")}</span></div>`;
+        }).join("")}</div></div>`).join("")}</div>` : "";
+    return `<section class="narrow" style="padding:56px 24px 90px;max-width:600px;text-align:center">
       <span style="width:66px;height:66px;border-radius:20px;background:${pass?"var(--sageTint)":"var(--honeyTint)"};display:grid;place-items:center;margin:0 auto 20px"><i data-lucide="${pass?"award":"rotate-ccw"}" class="icon" style="width:32px;height:32px;color:${pass?"var(--sageDeep)":"var(--honeyDeep)"}"></i></span>
-      <h1 style="font-size:32px;color:var(--ink);margin-bottom:10px">${pass?"¡Aprobaste!":"Casi…"}</h1>
-      <p class="lead" style="margin:0 auto 24px;max-width:420px">Obtuviste ${evalState.result.score} de ${Q.preguntas.length}. ${pass?"Ya podés descargar tu certificado.":"Necesitás "+Q.aprobar+" correctas. Repasá y volvé a intentar."}</p>
-      ${pass?`<button class="btn btn-honey" onclick="alert('El certificado en PDF se genera en el próximo paso.')"><i data-lucide="download" class="icon"></i> Descargar certificado</button>`:`<button class="btn btn-primary" onclick="openEval('${evalState.cid}')">Reintentar</button>`}
-      <div style="margin-top:16px"><button class="btn btn-quiet" onclick="state.view='aula';render()">Volver al aula</button></div>
+      <h1 style="font-size:32px;color:var(--ink);margin-bottom:10px">${pass?"¡Aprobaste!":"No alcanzó esta vez"}</h1>
+      <p class="lead" style="margin:0 auto 6px;max-width:440px">Obtuviste <strong style="color:var(--ink)">${r.score} de ${Q.preguntas.length}</strong> ${pass?"correctas.":("(necesitás "+Q.aprobar+").")}</p>
+      <p style="font-size:13.5px;color:var(--sub);margin:0 0 22px">Intento ${intentos} de ${max}${!pass&&quedan>0?" · te quedan "+quedan:""}.</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+        <button class="btn btn-quiet" onclick="evalState.review=!evalState.review;render()"><i data-lucide="list-checks" class="icon"></i> ${evalState.review?"Ocultar":"Ver"} respuestas correctas</button>
+        ${pass
+          ? `<button class="btn btn-honey" onclick="openCert('${evalState.cid}')"><i data-lucide="award" class="icon"></i> Solicitar certificado</button>`
+          : (quedan>0
+              ? `<button class="btn btn-primary" onclick="openEval('${evalState.cid}')"><i data-lucide="rotate-ccw" class="icon"></i> Reintentar</button>`
+              : `<span style="font-size:14px;color:var(--sub);align-self:center">Sin intentos disponibles.</span>`)}
+      </div>
+      ${review}
+      <div style="margin-top:22px"><button class="btn btn-quiet" onclick="state.view='aula';render()">Volver al aula</button></div>
     </section>`;
   }
+
+  const intento=intentosCurso(evalState.cid)+1;
   return `<section class="narrow" style="padding:40px 24px 90px;max-width:640px">
     <button class="back" onclick="state.view='aula';render()"><i data-lucide="arrow-left" class="icon"></i> Volver al aula</button>
-    <span class="eyebrow">Evaluación final</span>
+    <span class="eyebrow">Evaluación final · Intento ${intento} de ${max}</span>
     <h1 style="font-size:30px;color:var(--ink);margin:12px 0 6px">${esc(c.title)}</h1>
-    <p class="lead" style="font-size:15.5px;margin:0 0 24px">Respondé las ${Q.preguntas.length} preguntas. Necesitás ${Q.aprobar} correctas para aprobar.</p>
-    ${Q.preguntas.map((p,qi)=>`<div class="card" style="margin-bottom:16px"><div style="font-weight:700;color:var(--ink);margin-bottom:12px">${qi+1}. ${esc(p.q)}</div>
+    <p class="lead" style="font-size:15.5px;margin:0 0 24px">Respondé las ${Q.preguntas.length} preguntas. Necesitás ${Q.aprobar} correctas para aprobar. Tenés hasta ${max} intentos.</p>
+    ${Q.preguntas.map((p,qi)=>`<div class="card" style="margin-bottom:14px"><div style="font-weight:700;color:var(--ink);margin-bottom:12px">${qi+1}. ${esc(p.q)}</div>
       <div style="display:grid;gap:8px">${p.ops.map((o,oi)=>`<label style="display:flex;gap:10px;align-items:center;cursor:pointer;font-size:15px;color:var(--ink)"><input type="radio" name="q${qi}" value="${oi}"> ${esc(o)}</label>`).join("")}</div></div>`).join("")}
     <button class="btn btn-honey btn-full" onclick="submitEval()">Enviar respuestas</button>
   </section>`;
 }
 function submitEval(){
-  const Q=QUIZ[evalState.cid]; let score=0;
-  Q.preguntas.forEach((p,qi)=>{ const s=document.querySelector('input[name="q'+qi+'"]:checked'); if(s && +s.value===p.ok) score++; });
-  evalState.result={score};
-  if(score>=Q.aprobar){ progreso[evalState.cid]=progreso[evalState.cid]||{}; progreso[evalState.cid].aprobado=true; saveProg(); }
+  const Q=QUIZ[evalState.cid]; const answers=[]; let score=0, faltan=false;
+  Q.preguntas.forEach((p,qi)=>{ const s=document.querySelector('input[name="q'+qi+'"]:checked'); if(!s){ faltan=true; answers[qi]=-1; } else { answers[qi]=+s.value; if(+s.value===p.ok) score++; } });
+  if(faltan){ alert("Respondé todas las preguntas antes de enviar."); return; }
+  progreso[evalState.cid]=progreso[evalState.cid]||{};
+  progreso[evalState.cid].intentos=(progreso[evalState.cid].intentos||0)+1;
+  if(score>=Q.aprobar) progreso[evalState.cid].aprobado=true;
+  saveProg();
+  evalState.result={ score, answers }; evalState.review=false;
   render();
+}
+
+/* ── Certificado ── */
+function openCert(cid){ if(!(progreso[cid]||{}).aprobado && !(sesion&&sesion.preview)){ alert("El certificado se habilita al aprobar el examen."); return; } state.certCid=cid; state.view="certificado"; render(); }
+function certificadoHTML(){
+  const c=courseById(state.certCid); const p=perfil();
+  const nombre=((p&&p.nombre?p.nombre:"")+" "+(p&&p.apellido?p.apellido:"")).trim() || (sesion&&sesion.nombre) || "Alumno/a";
+  const fecha=new Date().toLocaleDateString("es-AR",{day:"2-digit",month:"2-digit",year:"numeric"});
+  return `<section class="wrap" style="padding:36px 24px 70px;max-width:820px">
+    <div id="cert-print" class="cert">
+      <div class="cert-inner">
+        <div class="cert-eyebrow">ACADEMIA TU PROFE IA</div>
+        <h1 class="cert-title">Certificado de aprobación</h1>
+        <div class="cert-sub">Se otorga el presente reconocimiento oficial a:</div>
+        <div class="cert-name">${esc(nombre)}</div>
+        <p class="cert-body">Ha concluido satisfactoriamente el curso «${esc(c.title)}», otorgado por los ingenieros <strong>Camila Paniz</strong> y <strong>Nicolás Kwaszka</strong>, con una carga horaria total de ${c.hours} horas, cumpliendo con los contenidos y aprobando satisfactoriamente el examen final.</p>
+        <div class="cert-date"><div class="cert-date-lab">Fecha de emisión</div><div class="cert-date-val">${fecha}</div></div>
+        <div class="cert-sign">
+          <div class="cert-sign-col"><div class="cert-sign-line"></div><div class="cert-sign-name">Camila Paniz</div><div class="cert-sign-role">Ingeniera Industrial</div></div>
+          <div class="cert-seal"><i data-lucide="sparkles" class="icon"></i></div>
+          <div class="cert-sign-col"><div class="cert-sign-line"></div><div class="cert-sign-name">Nicolás Kwaszka</div><div class="cert-sign-role">Ingeniero Industrial</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="no-print" style="display:flex;gap:10px;justify-content:center;margin-top:24px;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="window.print()"><i data-lucide="printer" class="icon"></i> Imprimir o guardar PDF</button>
+      <button class="btn btn-quiet" onclick="state.view='aula';render()">Cerrar</button>
+    </div>
+    <p class="fineprint no-print" style="margin-top:12px">Consejo: en el diálogo de impresión, elegí «Guardar como PDF» como destino.</p>
+  </section>`;
 }
 
 /* ═══════════════ ADMIN — panel (Firebase) ═══════════════ */
@@ -901,7 +1070,7 @@ function adminHTML(){
     <span class="eyebrow">Panel de administración</span>
     <h1 style="font-size:36px;color:var(--ink);margin:12px 0 6px">Alumnos</h1>
     <p class="lead" style="margin:0 0 20px">Creá el acceso de quienes ya pagaron y previsualizá cómo ven el aula.</p>
-    <div style="margin-bottom:22px"><button class="btn btn-quiet" onclick="verDemo()"><i data-lucide="eye" class="icon"></i> Previsualizar aula</button></div>
+    <div style="margin-bottom:22px;display:flex;gap:10px;flex-wrap:wrap"><button class="btn btn-quiet" onclick="verDemo()"><i data-lucide="eye" class="icon"></i> Previsualizar aula</button><button class="btn btn-quiet" onclick="state.view='contenido';render()"><i data-lucide="pencil" class="icon"></i> Editar la web</button><button class="btn btn-quiet" onclick="openClases()"><i data-lucide="video" class="icon"></i> Cargar clases y PDFs</button></div>
     <div class="card" style="margin-bottom:24px">
       <div class="fcard-head"><span class="fcard-ic"><i data-lucide="user-plus" class="icon"></i></span><h2>Habilitar un alumno</h2></div>
       <div class="fgrid">
@@ -954,15 +1123,214 @@ function verDemo(){ impersonar({ email:"(vista previa)", nombre:"Vista previa", 
 function verAlumno(email){ const a=adminAlumnos.find(x=>x.email===email); if(a) impersonar(a); }
 function exitPreview(){ if(auth.currentUser){ sesion={ role:"admin", uid:auth.currentUser.uid, email:auth.currentUser.email, nombre:"Administración" }; perfilActual=null; progreso={}; state.view="admin"; loadAlumnos(); } else { sesion=null; state.view="home"; render(); } }
 
+/* ── Editor de contenido de la web (todo editable desde el panel) ── */
+function contenidoHTML(){
+  const ea=v=>(""+(v==null?"":v)).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;");
+  const S="border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:15px;font-family:var(--sans);color:var(--ink);background:var(--paper);width:100%";
+  const inp=(id,lab,v)=>`<label class="field" style="margin-bottom:14px"><span class="lab">${lab}</span><input id="${id}" value="${ea(v)}" style="${S}"></label>`;
+  const ta=(id,lab,v,rows)=>`<label class="field" style="margin-bottom:14px"><span class="lab">${lab}</span><textarea id="${id}" rows="${rows||2}" style="${S};resize:vertical">${esc(v||"")}</textarea></label>`;
+  const box=(titulo,inner)=>`<div class="card" style="margin-bottom:18px"><h2 style="font-size:19px;color:var(--ink);margin:0 0 14px">${titulo}</h2>${inner}</div>`;
+  const lines=arr=>(arr||[]).join("\n");
+
+  const secInicio=box("Inicio",
+    inp("ct_hero_titulo","Título principal",CONTENIDO.hero_titulo)+
+    inp("ct_hero_acento","Frase destacada (en verde)",CONTENIDO.hero_acento)+
+    ta("ct_hero_sub","Subtítulo",CONTENIDO.hero_sub,2)+
+    `<div class="fgrid">${inp("ct_path1_titulo","Tarjeta 1 · título",CONTENIDO.path1_titulo)}${inp("ct_path2_titulo","Tarjeta 2 · título",CONTENIDO.path2_titulo)}</div>`+
+    ta("ct_path1_texto","Tarjeta 1 · texto (Para vos)",CONTENIDO.path1_texto,2)+
+    ta("ct_path2_texto","Tarjeta 2 · texto (Para tu empresa)",CONTENIDO.path2_texto,2)+
+    `<div class="fgrid">${inp("ct_cursos_eyebrow","Sección cursos · etiqueta",CONTENIDO.cursos_eyebrow)}${inp("ct_cursos_titulo","Sección cursos · título",CONTENIDO.cursos_titulo)}</div>`);
+
+  const secNos=box("Nosotros",
+    ta("ct_nos_intro","Introducción",CONTENIDO.nosotros_intro,3)+
+    ta("ct_nos_cuerpo","Texto principal (un renglón vacío separa párrafos)",CONTENIDO.nosotros_cuerpo,7)+
+    `<div class="fgrid">${inp("ct_nos_n1","Persona 1 · nombre",CONTENIDO.nos_n1)}${inp("ct_nos_r1","Persona 1 · rol",CONTENIDO.nos_r1)}</div>`+
+    `<div class="fgrid">${inp("ct_nos_n2","Persona 2 · nombre",CONTENIDO.nos_n2)}${inp("ct_nos_r2","Persona 2 · rol",CONTENIDO.nos_r2)}</div>`);
+
+  const secEmp=box("Empresas / Consultoría",
+    `<div class="fgrid">${inp("ct_emp_eyebrow","Etiqueta",CONTENIDO.empresas_eyebrow)}${inp("ct_emp_titulo","Título",CONTENIDO.empresas_titulo)}</div>`+
+    ta("ct_emp_lead","Texto de presentación",CONTENIDO.empresas_lead,3)+
+    `<div class="fgrid">${inp("ct_emp_cta_titulo","Llamado final · título",CONTENIDO.empresas_cta_titulo)}${inp("ct_emp_cta_texto","Llamado final · texto",CONTENIDO.empresas_cta_texto)}</div>`);
+
+  const secServ=box("Servicios de consultoría",
+    servicios.map((s,i)=>`<div style="border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px">
+      <div style="font-size:13px;color:var(--sub);margin-bottom:8px">Servicio ${i+1}</div>
+      ${inp("sv"+i+"_titulo","Título",s.titulo)}
+      ${inp("sv"+i+"_lead","Descripción corta",s.lead)}
+      ${ta("sv"+i+"_bullets","Puntos (uno por línea)",lines(s.bullets),6)}
+    </div>`).join(""));
+
+  const secEv=box("Eventos",
+    inp("ct_ev_titulo","Título del aviso",CONTENIDO.eventos_titulo)+
+    ta("ct_ev_texto","Texto del aviso",CONTENIDO.eventos_texto,3));
+
+  const secRec=box("Recursos",
+    `<div class="fgrid">${inp("ct_rec_titulo","Título",CONTENIDO.recursos_titulo)}${inp("ct_rec_estado","Título del aviso",CONTENIDO.recursos_estado)}</div>`+
+    inp("ct_rec_lead","Bajada",CONTENIDO.recursos_lead)+
+    ta("ct_rec_texto","Texto del aviso",CONTENIDO.recursos_texto,2));
+
+  const estOpts=(sel)=>["disponible","proximo","no"].map(o=>`<option value="${o}"${(sel||"disponible")===o?" selected":""}>${o==="disponible"?"Disponible":o==="proximo"?"Próximamente (con fecha)":"No disponible"}</option>`).join("");
+  const secCursos=box("Cursos",
+    `<p style="font-size:13px;color:var(--sub);margin:-6px 0 14px">El precio va en números (sin puntos ni símbolos). Las listas: un ítem por línea.</p>`+
+    courses.map((c,i)=>`<details style="border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:12px"><summary style="cursor:pointer;font-weight:700;color:var(--ink)">${esc(c.title)}</summary>
+      <div style="margin-top:14px">
+        ${inp("cu"+i+"_title","Título",c.title)}
+        ${inp("cu"+i+"_tagline","Frase corta",c.tagline)}
+        <div class="fgrid">${inp("cu"+i+"_price","Precio (número)",c.price)}${inp("cu"+i+"_modality","Modalidad",c.modality)}</div>
+        <div class="fgrid">${inp("cu"+i+"_hours","Horas",c.hours)}${inp("cu"+i+"_classes","Clases",c.classes)}</div>
+        <div class="fgrid">
+          <label class="field" style="margin-bottom:14px"><span class="lab">Disponibilidad</span><select id="cu${i}_estado" style="${S}">${estOpts(c.estado)}</select></label>
+          ${inp("cu"+i+"_desde","Fecha (si es «Próximamente»)",c.desde||"")}
+        </div>
+        ${ta("cu"+i+"_learn","Qué vas a aprender (uno por línea)",lines(c.learn),5)}
+        ${ta("cu"+i+"_forwho","¿Para quién es?",c.forWho,2)}
+        ${ta("cu"+i+"_prereq","Requisitos previos (uno por línea)",lines(c.prerequisites),3)}
+        ${ta("cu"+i+"_includes","Qué incluye (uno por línea)",lines(c.includes),4)}
+        ${ta("cu"+i+"_syllabus","Temario (uno por línea)",lines(c.syllabus),5)}
+      </div>
+    </details>`).join(""));
+
+  const secPago=box("Datos de pago y contacto",
+    `<div class="fgrid">${inp("pg_alias","Alias",PAGO.alias)}${inp("pg_cvu","CVU / CBU",PAGO.cvu)}</div>`+
+    inp("pg_titular","Titular de la cuenta",PAGO.titular)+
+    `<div class="fgrid">${inp("pg_whatsapp","WhatsApp (sin +, ej. 543755417757)",PAGO.whatsapp)}${inp("pg_email","Email de contacto",PAGO.email)}</div>`);
+
+  const secFoot=box("Pie de página",
+    inp("ct_footer","Texto del pie (después del año)",CONTENIDO.footer_texto));
+
+  return `<section class="wrap" style="padding:40px 24px 84px;max-width:780px">
+    <button class="back" onclick="state.view='admin';loadAlumnos()"><i data-lucide="arrow-left" class="icon"></i> Volver al panel</button>
+    <span class="eyebrow">Panel</span>
+    <h1 style="font-size:34px;color:var(--ink);margin:12px 0 6px">Editar la web</h1>
+    <p class="lead" style="margin:0 0 24px">Cambiá cualquier texto, precio o dato y guardá. Se actualiza en la web al instante, sin tocar código.</p>
+    ${secInicio}${secNos}${secEmp}${secServ}${secCursos}${secEv}${secRec}${secPago}${secFoot}
+    <div id="ct_err" style="color:#B4462F;font-size:13px;min-height:18px"></div>
+    <button id="ct_btn" class="btn btn-honey" onclick="guardarContenido()"><i data-lucide="check" class="icon"></i> Guardar todos los cambios</button>
+  </section>`;
+}
+function guardarContenido(){
+  const g=id=>val(id).trim();
+  const linesToArr=id=>val(id).split("\n").map(s=>s.trim()).filter(Boolean);
+  const num=(id,def)=>{ const n=parseInt(val(id).replace(/[^\d]/g,""),10); return isNaN(n)?def:n; };
+  const nuevo={
+    hero_titulo:g("ct_hero_titulo"), hero_acento:g("ct_hero_acento"), hero_sub:g("ct_hero_sub"),
+    path1_titulo:g("ct_path1_titulo"), path1_texto:g("ct_path1_texto"),
+    path2_titulo:g("ct_path2_titulo"), path2_texto:g("ct_path2_texto"),
+    cursos_eyebrow:g("ct_cursos_eyebrow"), cursos_titulo:g("ct_cursos_titulo"),
+    nosotros_intro:g("ct_nos_intro"), nosotros_cuerpo:val("ct_nos_cuerpo").trim(),
+    nos_n1:g("ct_nos_n1"), nos_r1:g("ct_nos_r1"), nos_n2:g("ct_nos_n2"), nos_r2:g("ct_nos_r2"),
+    empresas_eyebrow:g("ct_emp_eyebrow"), empresas_titulo:g("ct_emp_titulo"), empresas_lead:g("ct_emp_lead"),
+    empresas_cta_titulo:g("ct_emp_cta_titulo"), empresas_cta_texto:g("ct_emp_cta_texto"),
+    eventos_titulo:g("ct_ev_titulo"), eventos_texto:g("ct_ev_texto"),
+    recursos_titulo:g("ct_rec_titulo"), recursos_lead:g("ct_rec_lead"), recursos_estado:g("ct_rec_estado"), recursos_texto:g("ct_rec_texto"),
+    footer_texto:g("ct_footer"),
+    servicios: servicios.map((s,i)=>({ ic:s.ic, titulo:g("sv"+i+"_titulo"), lead:g("sv"+i+"_lead"), bullets:linesToArr("sv"+i+"_bullets") })),
+    courses: courses.map((c,i)=>Object.assign({}, c, {
+      title:g("cu"+i+"_title"), tagline:g("cu"+i+"_tagline"),
+      price:num("cu"+i+"_price",c.price), modality:g("cu"+i+"_modality"),
+      hours:num("cu"+i+"_hours",c.hours), classes:num("cu"+i+"_classes",c.classes),
+      estado:val("cu"+i+"_estado")||"disponible", desde:g("cu"+i+"_desde"),
+      learn:linesToArr("cu"+i+"_learn"), forWho:g("cu"+i+"_forwho"),
+      prerequisites:linesToArr("cu"+i+"_prereq"), includes:linesToArr("cu"+i+"_includes"),
+      syllabus:linesToArr("cu"+i+"_syllabus")
+    })),
+    pago:{ alias:g("pg_alias"), cvu:g("pg_cvu"), titular:g("pg_titular"), whatsapp:g("pg_whatsapp").replace(/[^\d]/g,""), email:g("pg_email") }
+  };
+  const btn=document.getElementById("ct_btn"); if(btn){ btn.disabled=true; btn.innerHTML="Guardando…"; }
+  db.collection("config").doc("textos").set(nuevo,{merge:true})
+    .then(()=>{ applyContenido(nuevo); state.view="admin"; loadAlumnos(); })
+    .catch(e=>{ if(btn){ btn.disabled=false; btn.innerHTML='Guardar todos los cambios'; lucide.createIcons(); } const el=document.getElementById("ct_err"); if(el) el.textContent="No se pudo guardar. Revisá tu conexión."; console.error(e); });
+}
+
+
+/* ── Editor de clases (videos de YouTube + PDF) ── */
+let EDIT_ALL = {};
+function ytId(url){
+  url=(url||"").trim(); if(!url) return "";
+  const m=url.match(/(?:v=|youtu\.be\/|embed\/|shorts\/|live\/)([A-Za-z0-9_-]{11})/);
+  if(m) return m[1];
+  if(/^[A-Za-z0-9_-]{11}$/.test(url)) return url;
+  return "";
+}
+function openClases(){
+  EDIT_ALL={};
+  courses.forEach(c=>{ EDIT_ALL[c.id]=(LESSONS[c.id]||[]).map(l=>Object.assign({},l)); });
+  state.claseCurso=courses[0]?courses[0].id:null; state.view="clases"; render();
+}
+function syncLec(){
+  const cid=state.claseCurso; const lex=EDIT_ALL[cid]||[];
+  lex.forEach((l,i)=>{ const t=document.getElementById("lx"+i+"_tit"), y=document.getElementById("lx"+i+"_yt"), p=document.getElementById("lx"+i+"_pdf"); if(t) l.titulo=t.value; if(y) l.yt=y.value; if(p) l.pdf=p.value; });
+}
+function selectClaseCurso(id){ syncLec(); state.claseCurso=id; render(); }
+function addClase(){ syncLec(); const cid=state.claseCurso; EDIT_ALL[cid]=EDIT_ALL[cid]||[]; EDIT_ALL[cid].push({ id:"l"+Date.now().toString(36), titulo:"", yt:"", pdf:"" }); render(); }
+function removeClase(i){ syncLec(); const cid=state.claseCurso; if(!confirm("¿Quitar esta clase?")) return; EDIT_ALL[cid].splice(i,1); render(); }
+function moveClase(i,d){ syncLec(); const a=EDIT_ALL[state.claseCurso]; const j=i+d; if(j<0||j>=a.length) return; const t=a[i]; a[i]=a[j]; a[j]=t; render(); }
+function clasesHTML(){
+  const ea=v=>(""+(v==null?"":v)).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;");
+  const S="border:1px solid var(--border);border-radius:9px;padding:9px 11px;font-size:14.5px;font-family:var(--sans);color:var(--ink);background:var(--paper);width:100%";
+  const cid=state.claseCurso; const c=courseById(cid); const lex=EDIT_ALL[cid]||[];
+  const opts=courses.map(x=>`<option value="${x.id}"${x.id===cid?" selected":""}>${esc(x.title)}</option>`).join("");
+  const rows=lex.map((l,i)=>`<div class="card" style="padding:14px 16px;margin-bottom:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <span style="font-weight:700;color:var(--ink)">Clase ${i+1}</span>
+      <span style="display:flex;gap:6px">
+        <button class="btn btn-quiet" style="padding:6px 9px" onclick="moveClase(${i},-1)" ${i===0?"disabled":""}><i data-lucide="chevron-up" class="icon"></i></button>
+        <button class="btn btn-quiet" style="padding:6px 9px" onclick="moveClase(${i},1)" ${i===lex.length-1?"disabled":""}><i data-lucide="chevron-down" class="icon"></i></button>
+        <button class="btn btn-quiet" style="padding:6px 9px;color:#B4462F" onclick="removeClase(${i})"><i data-lucide="trash-2" class="icon"></i></button>
+      </span>
+    </div>
+    <label class="field" style="margin-bottom:10px"><span class="lab">Título de la clase</span><input id="lx${i}_tit" value="${ea(l.titulo)}" style="${S}"></label>
+    <label class="field" style="margin-bottom:10px"><span class="lab">Link o ID de YouTube</span><input id="lx${i}_yt" value="${ea(l.yt)}" placeholder="https://youtu.be/abc123..." style="${S}"></label>
+    <label class="field"><span class="lab">Link del PDF en Drive (opcional)</span><input id="lx${i}_pdf" value="${ea(l.pdf)}" placeholder="https://drive.google.com/file/d/..." style="${S}"></label>
+  </div>`).join("");
+  return `<section class="wrap" style="padding:40px 24px 84px;max-width:720px">
+    <button class="back" onclick="state.view='admin';loadAlumnos()"><i data-lucide="arrow-left" class="icon"></i> Volver al panel</button>
+    <span class="eyebrow">Panel</span>
+    <h1 style="font-size:34px;color:var(--ink);margin:12px 0 6px">Clases y PDFs</h1>
+    <p class="lead" style="margin:0 0 20px">Elegí un curso, cargá sus clases (video de YouTube + PDF) y guardá. Las clases se abren en orden: el alumno termina una para desbloquear la siguiente.</p>
+    <label class="field" style="margin-bottom:20px"><span class="lab">Curso</span><select onchange="selectClaseCurso(this.value)" style="${S}">${opts}</select></label>
+    ${lex.length?rows:`<div class="card" style="color:var(--sub);margin-bottom:12px">Este curso todavía no tiene clases. Agregá la primera.</div>`}
+    <button class="btn btn-quiet" onclick="addClase()" style="margin-bottom:20px"><i data-lucide="plus" class="icon"></i> Agregar clase</button>
+    <div id="cl_err" style="color:#B4462F;font-size:13px;min-height:18px"></div>
+    <button id="cl_btn" class="btn btn-honey" onclick="guardarClases()"><i data-lucide="check" class="icon"></i> Guardar clases</button>
+    <p class="fineprint" style="text-align:left;margin-top:12px">Pegá el link de YouTube completo (yo extraigo el ID solo). Para el PDF, subilo a Drive como «cualquiera con el enlace» y pegá el link.</p>
+  </section>`;
+}
+function guardarClases(){
+  syncLec();
+  const out={}; let error="";
+  Object.keys(EDIT_ALL).forEach(cid=>{
+    const arr=[];
+    (EDIT_ALL[cid]||[]).forEach(l=>{
+      const tit=(l.titulo||"").trim(), raw=(l.yt||"").trim(), pdf=(l.pdf||"").trim();
+      if(!tit && !raw && !pdf) return;              // fila vacía → se ignora
+      if(!tit){ error=error||("En «"+(courseById(cid)?courseById(cid).title:cid)+"» hay una clase sin título."); return; }
+      const yt=ytId(raw);
+      if(!yt){ error=error||("La clase «"+tit+"» no tiene un link de YouTube válido."); return; }
+      arr.push({ id:l.id||("l"+Math.random().toString(36).slice(2,8)), titulo:tit, yt:yt, pdf:pdf });
+    });
+    out[cid]=arr;
+  });
+  const el=document.getElementById("cl_err");
+  if(error){ if(el) el.textContent=error; return; }
+  const btn=document.getElementById("cl_btn"); if(btn){ btn.disabled=true; btn.innerHTML="Guardando…"; }
+  db.collection("config").doc("textos").set({lessons:out},{merge:true})
+    .then(()=>{ LESSONS=out; state.view="admin"; loadAlumnos(); })
+    .catch(e=>{ if(btn){ btn.disabled=false; btn.innerHTML='Guardar clases'; lucide.createIcons(); } if(el) el.textContent="No se pudo guardar. Revisá tu conexión."; console.error(e); });
+}
+
 /* ═══════════════ RENDER ═══════════════ */
 function render(){
   const app=document.getElementById("app");
   let v=state.view; const c=courseById(state.courseId);
   if(v==="admin" && !(sesion&&sesion.role==="admin")) v=state.view="login";
-  if((v==="aula"||v==="leccion"||v==="evaluacion"||v==="onboarding") && !sesion) v=state.view="login";
+  if(v==="contenido" && !(sesion&&sesion.role==="admin")) v=state.view="login";
+  if(v==="clases" && !(sesion&&sesion.role==="admin")) v=state.view="login";
+  if((v==="aula"||v==="leccion"||v==="evaluacion"||v==="onboarding"||v==="certificado") && !sesion) v=state.view="login";
   if(v==="aula" && sesion && sesion.role==="alumno" && !sesion.preview && !perfilActual) v=state.view="onboarding";
   if(v==="leccion" && !curLec) v=state.view="aula";
   if(v==="evaluacion" && !evalState) v=state.view="aula";
+  if(v==="certificado" && !state.certCid) v=state.view="aula";
 
   if(v==="home") app.innerHTML=homeHTML();
   else if(v==="course") app.innerHTML=detailHTML(c);
@@ -974,9 +1342,12 @@ function render(){
   else if(v==="login") app.innerHTML=loginHTML();
   else if(v==="onboarding") app.innerHTML=onboardingHTML();
   else if(v==="admin") app.innerHTML=adminHTML();
+  else if(v==="contenido") app.innerHTML=contenidoHTML();
+  else if(v==="clases") app.innerHTML=clasesHTML();
   else if(v==="aula") app.innerHTML=aulaHTML();
   else if(v==="leccion") app.innerHTML=leccionHTML();
   else if(v==="evaluacion") app.innerHTML=evalHTML();
+  else if(v==="certificado") app.innerHTML=certificadoHTML();
 
   const navView=(v==="course"||v==="inscription")?"home":v;
   let navHTML=NAV.map(([k,l])=>`<button class="navlink${navView===k?' active':''}" onclick="go('${k}')">${l}</button>`).join("");
@@ -986,7 +1357,7 @@ function render(){
   else { navHTML += `<button class="navlink${v==="login"?' active':''}" onclick="go('login')">Acceso alumnos</button>`; }
   document.getElementById("nav").innerHTML=navHTML;
   document.body.className="";
-  document.getElementById("foot-copy").textContent="© "+new Date().getFullYear()+" Tu Profe IA · Camila Paniz y Nicolás Kwaszka";
+  document.getElementById("foot-copy").textContent="© "+new Date().getFullYear()+" Tu Profe IA · "+(CONTENIDO.footer_texto||"");
   lucide.createIcons();
   window.scrollTo({top:0});
   if(v==="leccion") initYT();
@@ -996,7 +1367,7 @@ function render(){
 auth.onAuthStateChanged(async (user)=>{
   if(!user){
     sesion=null; perfilActual=null; progreso={};
-    if(["admin","aula","leccion","evaluacion","onboarding"].includes(state.view)) state.view="home";
+    if(["admin","aula","leccion","evaluacion","onboarding","certificado"].includes(state.view)) state.view="home";
     render(); return;
   }
   const email=(user.email||"").toLowerCase();
@@ -1014,6 +1385,7 @@ auth.onAuthStateChanged(async (user)=>{
   render();
 });
 render();
+cargarContenido();
 </script>
 </body>
 </html>
